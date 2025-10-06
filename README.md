@@ -1,6 +1,6 @@
 # Kang Chiao VEX Robotics – Team 14683C
 
-![Team 14683C Logo](docs/logo.png)
+![Team 14683C Logo](docs/14683C.png)
 *Official logo of Kang Chiao VEX Robotics Team 14683C*
 
 ---
