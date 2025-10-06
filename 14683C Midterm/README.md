@@ -86,7 +86,7 @@ The core driver control task:
 - `competition_initialize()` → Setup before match (placeholder)  
 - `autonomous()` → For autonomous routines (empty for now)
 
-⚙️ Tuning Parameters
+### ⚙️ Tuning Parameters
 Parameter	Description	Default
 kLoopDelayMs	Control loop delay (ms)	10
 kForwardPreferenceDeadband	Forward-input threshold (%)	5.0
@@ -94,7 +94,7 @@ kForwardPreferenceDeadband	Forward-input threshold (%)	5.0
 Adjust the deadband for a sharper or more forgiving joystick feel.
 Shorter loop delay increases responsiveness but uses more CPU.
 
-🧭 Future Extensions
+### 🧭 Future Extensions
 
 -Add PID or autonomous path-following in autonomous()
 
