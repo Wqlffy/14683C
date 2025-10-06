@@ -32,8 +32,7 @@ Our team focuses on combining **mechanical design**, **software control**, and *
 
 ## ⚙️ 2025–2026 Season: *Push Back* Competitions
 
-For the **2025–2026 VEX Robotics Game “Push Back”**,  
-our engineering goals include:
+For the **2025–2026 VEX Robotics Game “Push Back”**, our competitions include:
 - 2025-2026 PAS-VEX V5RC Signature Event
 - 2025-2026 VEX TAIWAN OPEN V5RC 高中組冠軍賽(HS)
 ---
