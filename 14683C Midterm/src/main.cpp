@@ -7,7 +7,7 @@
 namespace {
 constexpr int kLoopDelayMs = 10;
 constexpr double kForwardPreferenceDeadband = 5.0;
-constexpr double kCurvatureReduction = 0.6;  // reduces wheel authority as speed increases
+constexpr double kCurvatureReduction = 0.6;
 constexpr double kMinTurnGain = 0.2;
 constexpr double kDriveSlewStepPct = 5.0;
 constexpr double kAuxSlewStepPct = 5.0;
