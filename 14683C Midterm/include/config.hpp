@@ -15,15 +15,7 @@ inline pros::MotorGroup intakeGroup({6, 7}, pros::MotorGears::green, pros::Motor
 inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
 
-inline float deadband(float x, float db = 0.05f) {
-  return (std::fabs(x) < db) ? 0.0f : x;
-}
-
-inline float squareKeepSign(float x) {
-  return (x >= 0.0f) ? (x * x) : -(x * x);
-}
-
-inline float clamp(float x, float lo, float hi) {
+inline double clamp(double x, double lo, double hi) {
   if (x < lo) {
     return lo;
   }
@@ -33,9 +25,31 @@ inline float clamp(float x, float lo, float hi) {
   return x;
 }
 
-inline int pctToMillivolts(float pct) {
-  const float bounded = clamp(pct, -100.0f, 100.0f);
-  return static_cast<int>(bounded * 120.0f);
+inline double applyDeadbandPct(double xPct, double dbPct) {
+  return (std::fabs(xPct) <= dbPct) ? 0.0 : xPct;
+}
+
+inline double squareInputPct(double xPct) {
+  const double sign = (xPct >= 0.0) ? 1.0 : -1.0;
+  const double normalized = xPct / 100.0;
+  const double squared = normalized * normalized;
+  return sign * squared * 100.0;
+}
+
+inline double slew(double target, double current, double step) {
+  const double delta = target - current;
+  if (delta > step) {
+    return current + step;
+  }
+  if (delta < -step) {
+    return current - step;
+  }
+  return target;
+}
+
+inline int pctToMillivolts(double pct) {
+  const double bounded = clamp(pct, -100.0, 100.0);
+  return static_cast<int>(bounded * 120.0);
 }
 
 }

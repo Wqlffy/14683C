@@ -1,13 +1,16 @@
 #include "main.h"
+
 #include <cmath>
+
 #include "config.hpp"
-#include "lemlib/api.hpp" // IWYU pragma: keep
-#include "lemlib/chassis/chassis.hpp" // IWYU pragma: keep
-#include "pros/llemu.hpp" // IWYU pragma: keep
 
 namespace {
 constexpr int kLoopDelayMs = 10;
-constexpr float kForwardPreferenceDeadband = 5.0f;
+constexpr double kForwardPreferenceDeadband = 5.0;
+constexpr double kCurvatureReduction = 0.6;  // reduces wheel authority as speed increases
+constexpr double kMinTurnGain = 0.2;
+constexpr double kDriveSlewStepPct = 5.0;
+constexpr double kAuxSlewStepPct = 5.0;
 }
 
 void disabled() {
@@ -33,60 +36,74 @@ void opcontrol() {
 
   config::leftDrive.set_brake_mode_all(pros::MotorBrake::brake);
   config::rightDrive.set_brake_mode_all(pros::MotorBrake::brake);
-  config::auxleft.set_brake_mode(pros::MotorBrake::hold);
-  config::auxright.set_brake_mode(pros::MotorBrake::hold);
+  config::auxleft.set_brake_mode(pros::MotorBrake::brake);
+  config::auxright.set_brake_mode(pros::MotorBrake::brake);
   config::intakeGroup.set_brake_mode_all(pros::MotorBrake::hold);
 
   while (true) {
-    const float rawFwd = static_cast<float>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0f;
-    const float rawTurn = static_cast<float>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) / 127.0f;
-    float fwd = config::squareKeepSign(config::deadband(rawFwd));
-    float turn = config::squareKeepSign(config::deadband(rawTurn));
+    const double rawThrottlePct = -static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
+    const double rawWheelPct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) / 127.0 * 100.0;
 
-    float forwardPct = config::clamp(fwd * 100.0f, -100.0f, 100.0f);
-    const float turnPct = config::clamp(turn * 100.0f, -100.0f, 100.0f);
+    const double shapedThrottle = config::squareInputPct(config::applyDeadbandPct(rawThrottlePct, 5.0));
+    const double shapedWheel = config::squareInputPct(config::applyDeadbandPct(rawWheelPct, 5.0));
 
-    if (std::fabs(forwardPct) < kForwardPreferenceDeadband) {
-      forwardPct = 0.0f;
+    double throttle = config::clamp(shapedThrottle, -100.0, 100.0);
+    double wheel = config::clamp(shapedWheel, -100.0, 100.0);
+
+    if (std::fabs(throttle) < kForwardPreferenceDeadband) {
+      throttle = 0.0;
     }
 
-    float leftDrivePct = 0.0f;
-    float rightDrivePct = 0.0f;
-    float auxLeftPct = 0.0f;
-    float auxRightPct = 0.0f;
+    double leftTargetPct = 0.0;
+    double rightTargetPct = 0.0;
 
-    if (forwardPct != 0.0f) {
-      leftDrivePct = forwardPct;
-      rightDrivePct = forwardPct;
-      auxLeftPct = forwardPct;
-      auxRightPct = forwardPct;
-    } else if (turnPct < 0.0f) {
-      leftDrivePct = turnPct;
-      auxLeftPct = turnPct;
-    } else if (turnPct > 0.0f) {
-      rightDrivePct = turnPct;
-      auxRightPct = turnPct;
-    }
-
-    if (leftDrivePct == 0.0f) {
-      config::leftDrive.brake();
+    if (std::fabs(wheel) >= std::fabs(throttle)) {
+      leftTargetPct = config::clamp(wheel, -100.0, 100.0);
+      rightTargetPct = config::clamp(-wheel, -100.0, 100.0);
     } else {
-      config::leftDrive.move_voltage(config::pctToMillivolts(leftDrivePct));
+      const double speedScalar = std::fabs(throttle) / 100.0;
+      double turnGain = 1.0 - kCurvatureReduction * speedScalar;
+      if (turnGain < kMinTurnGain) {
+        turnGain = kMinTurnGain;
+      }
+      const double adjustedWheel = config::clamp(wheel * turnGain, -100.0, 100.0);
+      leftTargetPct = config::clamp(throttle + adjustedWheel, -100.0, 100.0);
+      rightTargetPct = config::clamp(throttle - adjustedWheel, -100.0, 100.0);
     }
 
-    if (rightDrivePct == 0.0f) {
-      config::rightDrive.brake();
-    } else {
-      config::rightDrive.move_voltage(config::pctToMillivolts(rightDrivePct));
-    }
+    static double leftPctPrev = 0.0;
+    static double rightPctPrev = 0.0;
+    static double auxLeftPrev = 0.0;
+    static double auxRightPrev = 0.0;
 
-    if (auxLeftPct == 0.0f) {
+    const double leftDrivePct = config::clamp(config::slew(leftTargetPct, leftPctPrev, kDriveSlewStepPct), -100.0, 100.0);
+    const double rightDrivePct = config::clamp(config::slew(rightTargetPct, rightPctPrev, kDriveSlewStepPct), -100.0, 100.0);
+    const double auxLeftPct = config::clamp(config::slew(leftTargetPct, auxLeftPrev, kAuxSlewStepPct), -100.0, 100.0);
+    const double auxRightPct = config::clamp(config::slew(rightTargetPct, auxRightPrev, kAuxSlewStepPct), -100.0, 100.0);
+
+    leftPctPrev = leftDrivePct;
+    rightPctPrev = rightDrivePct;
+    auxLeftPrev = auxLeftPct;
+    auxRightPrev = auxRightPct;
+
+    auto applyCommand = [](pros::MotorGroup& group, double pct) {
+      if (std::fabs(pct) < 1e-3) {
+        group.brake();
+      } else {
+        group.move_voltage(config::pctToMillivolts(pct));
+      }
+    };
+
+    applyCommand(config::leftDrive, leftDrivePct);
+    applyCommand(config::rightDrive, rightDrivePct);
+
+    if (std::fabs(auxLeftPct) < 1e-3) {
       config::auxleft.brake();
     } else {
       config::auxleft.move_voltage(config::pctToMillivolts(auxLeftPct));
     }
 
-    if (auxRightPct == 0.0f) {
+    if (std::fabs(auxRightPct) < 1e-3) {
       config::auxright.brake();
     } else {
       config::auxright.move_voltage(config::pctToMillivolts(auxRightPct));
@@ -102,7 +119,7 @@ void opcontrol() {
     if (intakePct == 0) {
       config::intakeGroup.brake();
     } else {
-      config::intakeGroup.move_voltage(config::pctToMillivolts(static_cast<float>(intakePct)));
+      config::intakeGroup.move_voltage(config::pctToMillivolts(static_cast<double>(intakePct)));
     }
 
     pros::delay(kLoopDelayMs);
