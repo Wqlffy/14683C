@@ -1,6 +1,9 @@
 #include "main.h"
 #include <cmath>
 #include "config.hpp"
+#include "lemlib/api.hpp" // IWYU pragma: keep
+#include "lemlib/chassis/chassis.hpp" // IWYU pragma: keep
+#include "pros/llemu.hpp" // IWYU pragma: keep
 
 namespace {
 constexpr int kLoopDelayMs = 10;
@@ -12,14 +15,20 @@ void disabled() {
 }
 
 void competition_initialize() {
-
+// lemlib::Drivetrain drivetrain(&config::leftDrive, config::auxleft,
+//                               &config::rightDrive, config::auxright,
+//                               10, // 10 inch track width
+//                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
+//                               600, // drivetrain rpm is 600
+//                               2 // horizontal drift is 2 (for now)
+// );
 }
 
 void autonomous() {
 
 }
 
-void control() {
+void opcontrol() {
   pros::Controller master(pros::E_CONTROLLER_MASTER);
 
   config::leftDrive.set_brake_mode_all(pros::MotorBrake::brake);
