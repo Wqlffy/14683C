@@ -41,7 +41,7 @@ void opcontrol() {
   config::intakeGroup.set_brake_mode_all(pros::MotorBrake::hold);
 
   while (true) {
-    const double rawThrottlePct = -static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
+    const double rawThrottlePct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
     const double rawWheelPct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) / 127.0 * 100.0;
 
     const double shapedThrottle = config::squareInputPct(config::applyDeadbandPct(rawThrottlePct, 5.0));
