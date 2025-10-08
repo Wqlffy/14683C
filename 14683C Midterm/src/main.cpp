@@ -39,6 +39,9 @@ void opcontrol() {
   config::auxleft.set_brake_mode(pros::MotorBrake::brake);
   config::auxright.set_brake_mode(pros::MotorBrake::brake);
   config::intakeGroup.set_brake_mode_all(pros::MotorBrake::hold);
+  config::loader1.set_brake_mode(pros::MotorBrake::hold);
+  config::loader2.set_brake_mode(pros::MotorBrake::hold);
+
 
   while (true) {
     const double rawThrottlePct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
@@ -75,16 +78,25 @@ void opcontrol() {
     static double rightPctPrev = 0.0;
     static double auxLeftPrev = 0.0;
     static double auxRightPrev = 0.0;
+    static double loader1Prev = 0.0;
+    static double loader2Prev = 0.0;
 
     const double leftDrivePct = config::clamp(config::slew(leftTargetPct, leftPctPrev, kDriveSlewStepPct), -100.0, 100.0);
     const double rightDrivePct = config::clamp(config::slew(rightTargetPct, rightPctPrev, kDriveSlewStepPct), -100.0, 100.0);
     const double auxLeftPct = config::clamp(config::slew(leftTargetPct, auxLeftPrev, kAuxSlewStepPct), -100.0, 100.0);
     const double auxRightPct = config::clamp(config::slew(rightTargetPct, auxRightPrev, kAuxSlewStepPct), -100.0, 100.0);
+    const double loaderTargetPct = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)
+                                        ? 100.0
+                                        : (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) ? -100.0 : 0.0);
+    const double loader1Pct = config::clamp(config::slew(loaderTargetPct, loader1Prev, kAuxSlewStepPct), -100.0, 100.0);
+    const double loader2Pct = config::clamp(config::slew(loaderTargetPct, loader2Prev, kAuxSlewStepPct), -100.0, 100.0);
 
     leftPctPrev = leftDrivePct;
     rightPctPrev = rightDrivePct;
     auxLeftPrev = auxLeftPct;
     auxRightPrev = auxRightPct;
+    loader1Prev = loader1Pct;
+    loader2Prev = loader2Pct;
 
     auto applyCommand = [](pros::MotorGroup& group, double pct) {
       if (std::fabs(pct) < 1e-3) {
@@ -107,6 +119,18 @@ void opcontrol() {
       config::auxright.brake();
     } else {
       config::auxright.move_voltage(config::pctToMillivolts(auxRightPct));
+    }
+
+    if (std::fabs(loader1Pct) < 1e-3) {
+      config::loader1.brake();
+    } else {
+      config::loader1.move_voltage(config::pctToMillivolts(loader1Pct));
+    }
+
+    if (std::fabs(loader2Pct) < 1e-3) {
+      config::loader2.brake();
+    } else {
+      config::loader2.move_voltage(config::pctToMillivolts(loader2Pct));
     }
 
     int intakePct = 0;

@@ -14,6 +14,8 @@ inline pros::MotorGroup rightDrive({8, -9}, pros::MotorGears::blue, pros::MotorU
 inline pros::MotorGroup intakeGroup({6, 7}, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Motor loader1(5, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Motor loader2(3, pros::MotorGears::blue, pros::MotorUnits::degrees);
 
 inline double clamp(double x, double lo, double hi) {
   if (x < lo) {
