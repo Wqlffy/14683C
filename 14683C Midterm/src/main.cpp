@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include <cmath>
+#include <cstdint>
 
 #include "config.hpp"
 
@@ -39,8 +40,15 @@ void opcontrol() {
   config::auxleft.set_brake_mode(pros::MotorBrake::brake);
   config::auxright.set_brake_mode(pros::MotorBrake::brake);
   config::intakeGroup.set_brake_mode_all(pros::MotorBrake::hold);
-  config::loader1.set_brake_mode(pros::MotorBrake::hold);
-  config::loader2.set_brake_mode(pros::MotorBrake::hold);
+  config::roller.set_brake_mode(pros::MotorBrake::hold);
+  config::loaders.set_brake_mode_all(pros::MotorBrake::hold);
+
+  bool scoringActive = false;
+  bool jamActive = false;
+  std::uint32_t scoringEndAt = 0;
+  std::uint32_t jamEndAt = 0;
+  double rollerPrev = 0.0;
+  double loaderPrev = 0.0;
 
 
   while (true) {
@@ -78,25 +86,60 @@ void opcontrol() {
     static double rightPctPrev = 0.0;
     static double auxLeftPrev = 0.0;
     static double auxRightPrev = 0.0;
-    static double loader1Prev = 0.0;
-    static double loader2Prev = 0.0;
+    const std::uint32_t now = pros::c::millis();
 
     const double leftDrivePct = config::clamp(config::slew(leftTargetPct, leftPctPrev, kDriveSlewStepPct), -100.0, 100.0);
     const double rightDrivePct = config::clamp(config::slew(rightTargetPct, rightPctPrev, kDriveSlewStepPct), -100.0, 100.0);
     const double auxLeftPct = config::clamp(config::slew(leftTargetPct, auxLeftPrev, kAuxSlewStepPct), -100.0, 100.0);
     const double auxRightPct = config::clamp(config::slew(rightTargetPct, auxRightPrev, kAuxSlewStepPct), -100.0, 100.0);
-    const double loaderTargetPct = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)
-                                        ? 100.0
-                                        : (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1) ? -100.0 : 0.0);
-    const double loader1Pct = config::clamp(config::slew(loaderTargetPct, loader1Prev, kAuxSlewStepPct), -100.0, 100.0);
-    const double loader2Pct = config::clamp(config::slew(loaderTargetPct, loader2Prev, kAuxSlewStepPct), -100.0, 100.0);
 
     leftPctPrev = leftDrivePct;
     rightPctPrev = rightDrivePct;
     auxLeftPrev = auxLeftPct;
     auxRightPrev = auxRightPct;
-    loader1Prev = loader1Pct;
-    loader2Prev = loader2Pct;
+
+    if (jamActive && now >= jamEndAt) {
+      jamActive = false;
+    }
+    if (scoringActive && now >= scoringEndAt) {
+      scoringActive = false;
+    }
+
+    if (!jamActive && master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+      jamActive = true;
+      jamEndAt = now + config::scoring::JAM_CLEAR_MS;
+      scoringActive = false;
+    }
+
+    double rollerTargetPct = 0.0;
+    double loaderTargetPct = 0.0;
+    bool scoringMode = false;
+
+    if (jamActive) {
+      rollerTargetPct = config::scoring::JAM_REVERSE_PCT * config::scoring::ROLLER_DIR;
+      loaderTargetPct = config::scoring::JAM_REVERSE_PCT * config::scoring::LOADER_DIR;
+    } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+      rollerTargetPct = config::scoring::PURGE_REVERSE_PCT * config::scoring::ROLLER_DIR;
+      loaderTargetPct = config::scoring::PURGE_REVERSE_PCT * config::scoring::LOADER_DIR;
+      scoringActive = false;
+    } else {
+      if (!scoringActive) {
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+          scoringActive = true;
+          scoringEndAt = now + config::scoring::SCORE_LONG_MS;
+        } else if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
+          scoringActive = true;
+          scoringEndAt = now + config::scoring::SCORE_MID_MS;
+        }
+      }
+
+      if (scoringActive) {
+        scoringMode = true;
+      } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+        rollerTargetPct = config::scoring::INTAKE_FEED_PCT * config::scoring::ROLLER_DIR;
+        loaderTargetPct = config::scoring::INTAKE_ASSIST_PCT * config::scoring::LOADER_DIR;
+      }
+    }
 
     auto applyCommand = [](pros::MotorGroup& group, double pct) {
       if (std::fabs(pct) < 1e-3) {
@@ -121,16 +164,23 @@ void opcontrol() {
       config::auxright.move_voltage(config::pctToMillivolts(auxRightPct));
     }
 
-    if (std::fabs(loader1Pct) < 1e-3) {
-      config::loader1.brake();
-    } else {
-      config::loader1.move_voltage(config::pctToMillivolts(loader1Pct));
-    }
+    if (scoringMode) {
+      rollerPrev = 0.0;
+      loaderPrev = 0.0;
 
-    if (std::fabs(loader2Pct) < 1e-3) {
-      config::loader2.brake();
+      config::moveVelSurface(config::roller, config::scoring::VR_MPS, config::scoring::ROLLER_DIR,
+                             config::scoring::ROLLER_MAX_RPM, config::scoring::ROLLER_DIAMETER_M);
+      config::moveVelSurface(config::loaders, config::scoring::VS_MPS, config::scoring::LOADER_DIR,
+                             config::scoring::LOADER_MAX_RPM, config::scoring::LOADER_DIAMETER_M);
     } else {
-      config::loader2.move_voltage(config::pctToMillivolts(loader2Pct));
+      const double rollerPct = config::clamp(config::slew(rollerTargetPct, rollerPrev, kAuxSlewStepPct), -100.0, 100.0);
+      const double loaderPct = config::clamp(config::slew(loaderTargetPct, loaderPrev, kAuxSlewStepPct), -100.0, 100.0);
+
+      rollerPrev = rollerPct;
+      loaderPrev = loaderPct;
+
+      config::spinPct(config::roller, rollerPct);
+      config::spinPct(config::loaders, loaderPct);
     }
 
     int intakePct = 0;
