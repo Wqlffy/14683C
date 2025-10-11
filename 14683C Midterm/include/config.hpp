@@ -13,7 +13,7 @@ inline constexpr double kPi = 3.14159265358979323846;
 
 inline pros::MotorGroup leftDrive({-4, 2}, pros::MotorGears::blue, pros::MotorUnits::degrees);
 inline pros::MotorGroup rightDrive({8, -9}, pros::MotorGears::blue, pros::MotorUnits::degrees);
-inline pros::MotorGroup intakeGroup({6, 7}, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::MotorGroup intakeGroup({6, -7}, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor roller(11, pros::MotorGears::red, pros::MotorUnits::degrees);
