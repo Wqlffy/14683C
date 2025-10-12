@@ -4,8 +4,10 @@
 #include <cstdint>
 
 #include "pros/abstract_motor.hpp"
+#include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/motors.hpp"
+#include "pros/distance.hpp"
 
 namespace config {
 
@@ -18,6 +20,9 @@ inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees
 inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor roller(11, pros::MotorGears::red, pros::MotorUnits::degrees);
 inline pros::MotorGroup loaders({12, 16}, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Distance distRight(14);
+inline pros::Distance distBack(15);
+inline pros::IMU IMU(3);
 
 namespace scoring {
 // TODO: verify direction signs after a quick field test (flip sign if motion is reversed).

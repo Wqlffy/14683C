@@ -3,7 +3,10 @@
 #include <cmath>
 #include <cstdint>
 
+#include "auton_skills.hpp"
 #include "config.hpp"
+#include "lem_setup.hpp"
+#include "telemetry.hpp"
 
 namespace {
 constexpr int kLoopDelayMs = 10;
@@ -29,7 +32,15 @@ void competition_initialize() {
 }
 
 void autonomous() {
-
+  telemetry::init();
+  telemetry::setEnabled(true);
+  if (!lem_setup::calibrateAndInit()) {
+    telemetry::logEvent("IMU_CAL_FAIL");
+    return;
+  }
+  // lem_setup::setPoseMM(0.0, 0.0, 0.0);  // TODO: replace with actual start pose.
+  // telemetry::logEvent("AUTO_START");
+  // auton_skills::runSkillsAuton();
 }
 
 void opcontrol() {
