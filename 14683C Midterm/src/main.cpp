@@ -7,6 +7,8 @@
 #include "config.hpp"
 #include "lem_setup.hpp"
 #include "telemetry.hpp"
+#include "pros/llemu.hpp"
+#include "pros/misc.hpp"
 
 namespace {
 constexpr int kLoopDelayMs = 10;
@@ -61,6 +63,31 @@ void opcontrol() {
   double rollerPrev = 0.0;
   double loaderPrev = 0.0;
 
+
+  bool coord_overlay = false;
+
+  auto updateOverlay = [&]() {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if (!coord_overlay) {
+      pros::lcd::clear_line(0);
+      pros::lcd::clear_line(1);
+      pros::lcd::clear_line(2);
+#pragma clang diagnostic pop
+      return;
+    }
+    const auto pose = lem_setup::getPoseMM();
+    char buffer[64];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    std::snprintf(buffer, sizeof(buffer), "X:%6.1fmm", pose.x);
+    pros::lcd::set_text(0, buffer);
+    std::snprintf(buffer, sizeof(buffer), "Y:%6.1fmm", pose.y);
+    pros::lcd::set_text(1, buffer);
+    std::snprintf(buffer, sizeof(buffer), "θ:%6.1f°", pose.thetaDeg);
+    pros::lcd::set_text(2, buffer);
+#pragma clang diagnostic pop
+  };
 
   while (true) {
     const double rawThrottlePct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
@@ -206,6 +233,18 @@ void opcontrol() {
     } else {
       config::intakeGroup.move_voltage(config::pctToMillivolts(static_cast<double>(intakePct)));
     }
+
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+      coord_overlay = !coord_overlay;
+      telemetry::setEnabled(coord_overlay);
+      updateOverlay();
+    }
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+      lem_setup::setPoseMM(0.0, 0.0, 0.0);
+      updateOverlay();
+    }
+
+    updateOverlay();
 
     pros::delay(kLoopDelayMs);
   }
