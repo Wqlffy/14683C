@@ -54,6 +54,10 @@ inline constexpr double PATH_MIN_FWD_THRESHOLD_PCT = 10.0;
 // TUNE: Hysteresis band for target heading (deg).
 inline constexpr double PATH_HEADING_EPS_DEG = 1.5;
 
+// TUNE: Base drive slew step (% per loop) and turn slew (
+inline constexpr double DRIVE_SLEW_STEP_PCT = 5.0;
+inline constexpr double TURN_SLEW_STEP_PCT = 6.0;
+
 // --- Wallsnap -------------------------------------------------------------
 // TUNE: Exponential moving average alpha (0..1) for distance sensors.
 inline constexpr double WALL_EMA_ALPHA = 0.3;
@@ -76,7 +80,8 @@ inline constexpr int LOADER_MAX_RPM = 200;
 // TUNE: Roller direction sign (1 or -1).
 inline constexpr int ROLLER_DIR = 1;
 // TUNE: Loader direction sign (1 or -1).
-inline constexpr int LOADER_DIR = 1;
+inline constexpr int LOADER1_DIR = 1;
+inline constexpr int LOADER2_DIR = 1;
 // TUNE: Intake direction sign (1 or -1).
 inline constexpr int INTAKE_DIR = 1;
 
@@ -119,4 +124,3 @@ inline constexpr int TELEMETRY_INTERVAL_MS = 10;
 inline constexpr int SKILLS_GLOBAL_TIMEOUT_MS = 58000;
 
 }
-

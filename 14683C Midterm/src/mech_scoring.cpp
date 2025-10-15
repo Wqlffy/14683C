@@ -17,12 +17,14 @@ namespace mech_scoring {
 namespace {
   void stopAll() {
     config::roller.brake();
-    config::loaders.brake();
+    config::loader1.brake();
+    config::loader2.brake();
   }
 
   void spinPct(int pct) {
     config::roller.move_voltage(config::pctToMillivolts(pct * config::scoring::ROLLER_DIR));
-    config::loaders.move_voltage(config::pctToMillivolts(pct * config::scoring::LOADER_DIR));
+    config::loader1.move_voltage(config::pctToMillivolts(pct * config::scoring::LOADER1_DIR));
+    config::loader2.move_voltage(config::pctToMillivolts(pct * config::scoring::LOADER2_DIR));
   }
 
   void runVelocity(double roller_mps, double loader_mps) {
@@ -32,23 +34,26 @@ namespace {
                                             (config::scoring::LOADER_DIAMETER_M * config::kPi));
     const int roller_cmd = std::clamp(roller_rpm * config::scoring::ROLLER_DIR,
                                       -config::scoring::ROLLER_MAX_RPM, config::scoring::ROLLER_MAX_RPM);
-    const int loader_cmd = std::clamp(loader_rpm * config::scoring::LOADER_DIR,
-                                      -config::scoring::LOADER_MAX_RPM, config::scoring::LOADER_MAX_RPM);
+    const int loader1_cmd = std::clamp(loader_rpm * config::scoring::LOADER1_DIR,
+                                       -config::scoring::LOADER_MAX_RPM, config::scoring::LOADER_MAX_RPM);
+    const int loader2_cmd = std::clamp(loader_rpm * config::scoring::LOADER2_DIR,
+                                       -config::scoring::LOADER_MAX_RPM, config::scoring::LOADER_MAX_RPM);
     config::roller.move_velocity(roller_cmd);
-    config::loaders.move_velocity(loader_cmd);
+    config::loader1.move_velocity(loader1_cmd);
+    config::loader2.move_velocity(loader2_cmd);
   }
 }
 
 void scoreMidStart() {
   scoring_state = true;
   purge_pct = 0;
-  action_end = pros::c::millis() + nav_params::SCORE_MID_MS;
+  action_end = 0;
 }
 
 void scoreLongStart() {
   scoring_state = true;
   purge_pct = 0;
-  action_end = pros::c::millis() + nav_params::SCORE_LONG_MS;
+  action_end = 0;
 }
 
 void purgeStart(int pct) {
@@ -69,10 +74,6 @@ void update() {
   const std::uint32_t now = pros::c::millis();
   if (scoring_state) {
     runVelocity(config::scoring::VR_MPS, config::scoring::VS_MPS);
-    if (now >= action_end) {
-      scoring_state = false;
-      stopAll();
-    }
     return;
   }
 

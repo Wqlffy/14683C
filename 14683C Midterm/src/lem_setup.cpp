@@ -56,7 +56,7 @@ lemlib::Chassis chassis_obj{
 lem_setup::PoseMM last_pose{0.0, 0.0, 0.0};
 bool imu_ready = false;
 
-}  // namespace
+}
 
 namespace lem_setup {
 

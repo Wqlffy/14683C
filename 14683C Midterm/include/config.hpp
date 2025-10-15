@@ -18,40 +18,38 @@ inline pros::MotorGroup rightDrive({8, -9}, pros::MotorGears::blue, pros::MotorU
 inline pros::MotorGroup intakeGroup({6, -7}, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
-inline pros::Motor roller(11, pros::MotorGears::red, pros::MotorUnits::degrees);
-inline pros::MotorGroup loaders({12, 16}, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Motor roller(11, pros::MotorGears::blue, pros::MotorUnits::degrees);
+inline pros::Motor loader1(12, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Motor loader2(16, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Distance distRight(14);
 inline pros::Distance distBack(15);
 inline pros::IMU IMU(3);
 
 namespace scoring {
-// TODO: verify direction signs after a quick field test (flip sign if motion is reversed).
 constexpr double ROLLER_DIR = 1.0;
-constexpr double LOADER_DIR = 1.0;
+constexpr double LOADER1_DIR = 1.0;
+constexpr double LOADER2_DIR = 1.0;
 
 // TODO: replace with measured roller/loader diameters (meters) for accurate velocity control.
 constexpr double ROLLER_DIAMETER_M = 0.0508;
 constexpr double LOADER_DIAMETER_M = 0.0508;
 
-constexpr double ROLLER_MAX_RPM = 100.0;
+constexpr double ROLLER_MAX_RPM = 600.0;
 constexpr double LOADER_MAX_RPM = 200.0;  
 
-// TODO: tune feed velocity and downstream ratio on the practice field.
-constexpr double VR_MPS = 0.50;
-constexpr double K_DOWNSTREAM = 1.20;
+constexpr double VR_MPS = 0.80;
+constexpr double K_DOWNSTREAM = 1.35;
 constexpr double VS_MPS = VR_MPS * K_DOWNSTREAM;
 
-// Durations (ms) for system actions – adjust to taste.
-constexpr std::uint32_t JAM_CLEAR_MS = 300;
-constexpr std::uint32_t SCORE_MID_MS = 400;
-constexpr std::uint32_t SCORE_LONG_MS = 650;
+constexpr std::uint32_t JAM_CLEAR_MS = 500.0;
+constexpr std::uint32_t SCORE_MID_MS = 900.0;
+constexpr std::uint32_t SCORE_LONG_MS = 250.0;
 
-// Percentage commands used outside velocity mode.
 constexpr double INTAKE_FEED_PCT = 80.0;
 constexpr double INTAKE_ASSIST_PCT = 15.0;
 constexpr double JAM_REVERSE_PCT = -70.0;
 constexpr double PURGE_REVERSE_PCT = -100.0;
-}  // namespace scoring
+}
 
 inline double clamp(double x, double lo, double hi) {
   if (x < lo) {
@@ -127,4 +125,4 @@ inline void moveVelSurface(pros::MotorGroup& group, double surfaceMps, double di
   group.move_velocity(static_cast<int>(rpm));
 }
 
-}  // namespace config
+}
