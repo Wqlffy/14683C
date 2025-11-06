@@ -72,6 +72,7 @@ bool calibrateAndInit() {
   }
   chassis_obj.calibrate(false);
   imu_ready = true;
+  config::configureDirections();
   chassis_obj.setPose(0.0f, 0.0f, 0.0f);
   return true;
 }

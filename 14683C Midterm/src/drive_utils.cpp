@@ -41,18 +41,18 @@ void update(double leftTargetPct, double rightTargetPct) {
   double turn_ratio = std::clamp(std::fabs(turn) / 100.0, 0.0, 1.0);
   double speed_ratio = std::clamp(std::fabs(fwd) / 100.0, 0.0, 1.0);
 
-  const double throttle_scale = 1.0 - 0.4 * turn_ratio;
+  const double throttle_scale = 1.0 - 0.15 * turn_ratio;
   double scaled_left = fwd * throttle_scale + turn;
   double scaled_right = fwd * throttle_scale - turn;
 
-  const double turn_step = nav_params::TURN_SLEW_STEP_PCT * (1.0 - turn_ratio * 0.5);
-  const double drive_step = nav_params::DRIVE_SLEW_STEP_PCT * (1.0 - turn_ratio * 0.3);
+  const double turn_step = nav_params::TURN_SLEW_STEP_PCT * (1.0 - turn_ratio * 0.4) + 1.0;
+  const double drive_step = nav_params::DRIVE_SLEW_STEP_PCT * (1.0 - turn_ratio * 0.2) + 1.0;
 
   double left = applySlew(scaled_left, left_prev, drive_step);
   double right = applySlew(scaled_right, right_prev, drive_step);
 
   double diff = (left - right) * 0.5;
-  const double max_turn = 60.0 - 20.0 * speed_ratio;
+  const double max_turn = 85.0 - 30.0 * speed_ratio;
   if (diff > max_turn) {
     const double adjust = diff - max_turn;
     left -= adjust;
@@ -77,4 +77,3 @@ double leftOutput() { return left_prev; }
 double rightOutput() { return right_prev; }
 
 }
-

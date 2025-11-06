@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Midterm",
+    "project_name": "leftjoy",
     "target": "v5",
     "templates": {
       "LemLib": {

@@ -50,6 +50,7 @@ void autonomous() {
 void opcontrol() {
   pros::Controller master(pros::E_CONTROLLER_MASTER);
 
+  config::configureDirections();
   drive_utils::reset();
   config::leftDrive.set_brake_mode_all(pros::MotorBrake::brake);
   config::rightDrive.set_brake_mode_all(pros::MotorBrake::brake);
@@ -64,7 +65,10 @@ void opcontrol() {
   std::uint32_t jamEndAt = 0;
   double rollerPrev = 0.0;
   double loaderPrev = 0.0;
-
+  double lastThrottle = 0.0;
+  double lastTurn = 0.0;
+  double lastLeftOut = 0.0;
+  double lastRightOut = 0.0;
 
   bool coord_overlay = false;
 
@@ -88,12 +92,16 @@ void opcontrol() {
     pros::lcd::set_text(1, buffer);
     std::snprintf(buffer, sizeof(buffer), "θ:%6.1f°", pose.thetaDeg);
     pros::lcd::set_text(2, buffer);
+    std::snprintf(buffer, sizeof(buffer), "Thr:%5.1f Turn:%5.1f", lastThrottle, lastTurn);
+    pros::lcd::set_text(3, buffer);
+    std::snprintf(buffer, sizeof(buffer), "L:%6.1f R:%6.1f", lastLeftOut, lastRightOut);
+    pros::lcd::set_text(4, buffer);
 #pragma clang diagnostic pop
   };
 
   while (true) {
     const double rawThrottlePct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y)) / 127.0 * 100.0;
-    const double rawWheelPct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X)) / 127.0 * 100.0;
+    const double rawWheelPct = static_cast<double>(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X)) / 127.0 * 100.0;
 
     const double shapedThrottle = config::squareInputPct(config::applyDeadbandPct(rawThrottlePct, 5.0));
     const double shapedWheel = config::squareInputPct(config::applyDeadbandPct(rawWheelPct, 5.0));

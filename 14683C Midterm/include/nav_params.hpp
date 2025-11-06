@@ -55,8 +55,8 @@ inline constexpr double PATH_MIN_FWD_THRESHOLD_PCT = 10.0;
 inline constexpr double PATH_HEADING_EPS_DEG = 1.5;
 
 // TUNE: Base drive slew step (% per loop) and turn slew (
-inline constexpr double DRIVE_SLEW_STEP_PCT = 5.0;
-inline constexpr double TURN_SLEW_STEP_PCT = 6.0;
+inline constexpr double DRIVE_SLEW_STEP_PCT = 12.0;  // TUNE: higher = faster acceleration
+inline constexpr double TURN_SLEW_STEP_PCT = 8.0;     // TUNE: turn slew ceiling
 
 // --- Wallsnap -------------------------------------------------------------
 // TUNE: Exponential moving average alpha (0..1) for distance sensors.

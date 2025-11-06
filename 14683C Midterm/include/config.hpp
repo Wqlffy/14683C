@@ -4,20 +4,20 @@
 #include <cstdint>
 
 #include "pros/abstract_motor.hpp"
+#include "pros/distance.hpp"
 #include "pros/imu.hpp"
 #include "pros/motor_group.hpp"
 #include "pros/motors.hpp"
-#include "pros/distance.hpp"
 
 namespace config {
 
 inline constexpr double kPi = 3.14159265358979323846;
 
-inline pros::MotorGroup leftDrive({-4, 2}, pros::MotorGears::blue, pros::MotorUnits::degrees);
-inline pros::MotorGroup rightDrive({8, -9}, pros::MotorGears::blue, pros::MotorUnits::degrees);
+inline pros::MotorGroup leftDrive({4, 2}, pros::MotorGears::blue, pros::MotorUnits::degrees);
+inline pros::MotorGroup rightDrive({8, 9}, pros::MotorGears::blue, pros::MotorUnits::degrees);
 inline pros::MotorGroup intakeGroup({6, -7}, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor auxleft(1, pros::MotorGears::green, pros::MotorUnits::degrees);
-inline pros::Motor auxright(-10, pros::MotorGears::green, pros::MotorUnits::degrees);
+inline pros::Motor auxright(10, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor roller(11, pros::MotorGears::blue, pros::MotorUnits::degrees);
 inline pros::Motor loader1(12, pros::MotorGears::green, pros::MotorUnits::degrees);
 inline pros::Motor loader2(16, pros::MotorGears::green, pros::MotorUnits::degrees);
@@ -29,35 +29,25 @@ namespace scoring {
 constexpr double ROLLER_DIR = 1.0;
 constexpr double LOADER1_DIR = 1.0;
 constexpr double LOADER2_DIR = 1.0;
-
-// TODO: replace with measured roller/loader diameters (meters) for accurate velocity control.
 constexpr double ROLLER_DIAMETER_M = 0.0508;
 constexpr double LOADER_DIAMETER_M = 0.0508;
-
 constexpr double ROLLER_MAX_RPM = 600.0;
-constexpr double LOADER_MAX_RPM = 200.0;  
-
+constexpr double LOADER_MAX_RPM = 200.0;
 constexpr double VR_MPS = 0.80;
 constexpr double K_DOWNSTREAM = 1.35;
 constexpr double VS_MPS = VR_MPS * K_DOWNSTREAM;
-
-constexpr std::uint32_t JAM_CLEAR_MS = 500.0;
-constexpr std::uint32_t SCORE_MID_MS = 900.0;
-constexpr std::uint32_t SCORE_LONG_MS = 250.0;
-
+constexpr std::uint32_t JAM_CLEAR_MS = 500;
+constexpr std::uint32_t SCORE_MID_MS = 900;
+constexpr std::uint32_t SCORE_LONG_MS = 250;
 constexpr double INTAKE_FEED_PCT = 80.0;
 constexpr double INTAKE_ASSIST_PCT = 15.0;
 constexpr double JAM_REVERSE_PCT = -70.0;
 constexpr double PURGE_REVERSE_PCT = -100.0;
-}
+}  // namespace scoring
 
 inline double clamp(double x, double lo, double hi) {
-  if (x < lo) {
-    return lo;
-  }
-  if (x > hi) {
-    return hi;
-  }
+  if (x < lo) return lo;
+  if (x > hi) return hi;
   return x;
 }
 
@@ -68,18 +58,13 @@ inline double applyDeadbandPct(double xPct, double dbPct) {
 inline double squareInputPct(double xPct) {
   const double sign = (xPct >= 0.0) ? 1.0 : -1.0;
   const double normalized = xPct / 100.0;
-  const double squared = normalized * normalized;
-  return sign * squared * 100.0;
+  return sign * normalized * normalized * 100.0;
 }
 
 inline double slew(double target, double current, double step) {
   const double delta = target - current;
-  if (delta > step) {
-    return current + step;
-  }
-  if (delta < -step) {
-    return current - step;
-  }
+  if (delta > step) return current + step;
+  if (delta < -step) return current - step;
   return target;
 }
 
@@ -125,4 +110,14 @@ inline void moveVelSurface(pros::MotorGroup& group, double surfaceMps, double di
   group.move_velocity(static_cast<int>(rpm));
 }
 
+inline void configureDirections() {
+  leftDrive.set_reversed_all(true);
+  rightDrive.set_reversed_all(false);
+  auxleft.set_reversed(true);
+  auxright.set_reversed(false);
+  loader1.set_reversed(false);
+  loader2.set_reversed(false);
 }
+
+}  // namespace config
+
