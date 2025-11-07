@@ -1,59 +1,67 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "lemlib/chassis/chassis.hpp"
+#include "pros/adi.hpp"
+#include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "pros/motors.hpp"
+#include "pros/optical.hpp"
+#include "pros/rtos.hpp"
+
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
-pros::MotorGroup rightMotors({5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+
 pros::Motor intake(19, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::Motor indexer(-20, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor scoring(-9, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::adi::Pneumatics tounge('A', false); //change port later
+pros::adi::Pneumatics aligner('B', false); //change port later
 
 pros::Imu imu(1);
+pros::Optical opticalSensor(8); //change the port later
 
 pros::Rotation verticalEnc(6);
-
-// vertical tracking wheel (2.5" offset, left of the robot (negative)) 
-lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_4, -2.5);
+lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
-                              18, 
-                              lemlib::Omniwheel::NEW_4, 
-                              360,
-                              2
+                              18, // length between left and right wheels (middle of wheels)
+                              lemlib::Omniwheel::NEW_325, 
+                              450,
+                              2 // traction wheel is usually 2
 );
 
 lemlib::ControllerSettings linearController(10, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            3, // derivative gain (kD)
-                                            3, // anti windup
-                                            1, // small error range, in inches
-                                            100, // small error range timeout, in milliseconds
-                                            3, // large error range, in inches
-                                            500, // large error range timeout, in milliseconds
-                                            20 // maximum acceleration (slew)
+                                            0, // derivative gain (kD)
+                                            0, // anti windup
+                                            0, // small error range, in inches
+                                            0, // small error range timeout, in milliseconds
+                                            0, // large error range, in inches
+                                            0, // large error range timeout, in milliseconds
+                                            0 // maximum acceleration (slew)
 );
 
-// angular motion controller
-lemlib::ControllerSettings angularController(2, // proportional gain (kP)
+lemlib::ControllerSettings angularController(2,// proportional gain (kP)
                                              0, // integral gain (kI)
-                                             10, // derivative gain (kD)
-                                             3, // anti windup
-                                             1, // small error range, in degrees
-                                             100, // small error range timeout, in milliseconds
-                                             3, // large error range, in degrees
-                                             500, // large error range timeout, in milliseconds
+                                             0, // derivative gain (kD)
+                                             0, // anti windup
+                                             0, // small error range, in degrees
+                                             0, // small error range timeout, in milliseconds
+                                             0, // large error range, in degrees
+                                             0, // large error range timeout, in milliseconds
                                              0 // maximum acceleration (slew)
 );
 
-// sensors for odometry
-lemlib::OdomSensors sensors(&vertical, // vertical tracking wheel
-                            nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
-                            nullptr, // horizontal tracking wheel
-                            nullptr, // horizontal tracking wheel 2, set to nullptr as we don't have a second one
-                            &imu // inertial sensor
+lemlib::OdomSensors sensors(&vertical,
+                            nullptr,
+                            nullptr,
+                            nullptr,
+                            &imu 
 );
 
 lemlib::ExpoDriveCurve throttleCurve(3, // joystick deadband out of 127
@@ -66,18 +74,12 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
                                   1.019 // expo curve gain
 );
 
-// create the chassis
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
+	opticalSensor.set_led_pwm(100); // set optical sensor led brightness
 
     // the default rate is 50. however, if you need to change the rate, you
     // can do the following.
@@ -112,42 +114,76 @@ void competition_initialize() {}
 ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 
 void autonomous() {
-    // Move to x: 20 and y: 15, and face heading 90. Timeout set to 4000 ms
-    chassis.moveToPose(20, 15, 90, 4000);
-    // Move to x: 0 and y: 0 and face heading 270, going backwards. Timeout set to 4000ms
-    chassis.moveToPose(0, 0, 270, 4000, {.forwards = false});
-    // cancel the movement after it has traveled 10 inches
-    chassis.waitUntil(10);
-    chassis.cancelMotion();
-    // Turn to face the point x:45, y:-45. Timeout set to 1000
-    // dont turn faster than 60 (out of a maximum of 127)
-    chassis.turnToPoint(45, -45, 1000, {.maxSpeed = 60});
-    // Turn to face a direction of 90º. Timeout set to 1000
-    // will always be faster than 100 (out of a maximum of 127)
-    // also force it to turn clockwise, the long way around
-    chassis.turnToHeading(90, 1000, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 100});
-    // Follow the path in path.txt. Lookahead at 15, Timeout set to 4000
-    // following the path with the back of the robot (forwards = false)
-    // see line 116 to see how to define a path
-    chassis.follow(example_txt, 15, 4000, false);
-    // wait until the chassis has traveled 10 inches. Otherwise the code directly after
-    // the movement will run immediately
-    // Unless its another movement, in which case it will wait
-    chassis.waitUntil(10);
-    pros::lcd::print(4, "Traveled 10 inches during pure pursuit!");
-    // wait until the movement is done
-    chassis.waitUntilDone();
-    pros::lcd::print(4, "pure pursuit finished!");
+	chassis.setPose(0, 0, 0); 
+	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
+	
+	// chassis.turnToHeading(180, 999999); //tuning Angular PID
+	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
+	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
+
+	// async false makes the code finish the timeout before going to the next line
 }
 
-/**
- * Runs in driver control
- */
 void opcontrol() {
     while (true) {
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         chassis.arcade(leftY, rightX);
-        pros::delay(10);
+
+		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
+			intake.move(127);
+		}
+		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+			intake.move(-127);
+		}
+		else {
+			intake.move(0);
+		}
+
+		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
+			scoring.move(127);
+		}
+		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
+			indexer.move(-127);
+		}
+		else {
+			indexer.move(0);
+		}
+
+		if (opticalSensor.get_hue() > 190 && opticalSensor.get_hue() < 220){ 
+			// if blue is detected
+			pros::delay(500);
+			indexer.move(127);
+		}else if (opticalSensor.get_hue() > 5 && opticalSensor.get_hue() < 30) {
+			// if red is detected
+			pros::delay(500);
+			indexer.move(-127);
+		}else {
+			indexer.move(127);
+		}
+
+		bool flagStateTounge = false; // Variable to track the state of the Piston for the Tounge
+		bool flagStateAligner = false; // Variable to track the state of the Piston for the Aligner
+
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)){
+			if (flagStateTounge == false){
+				tounge.extend();
+				flagStateTounge = true;
+			}else {
+				tounge.retract();
+				flagStateTounge = false;
+			}
+		}
+
+		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
+			if (flagStateAligner == false){
+				aligner.extend();
+				flagStateAligner = true;
+			}else {
+				aligner.retract();
+				flagStateAligner = false;
+			}
+		}
+			pros::delay(20);
+		}
     }
-}
