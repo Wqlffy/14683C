@@ -15,13 +15,13 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
-pros::Motor intake(19, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::Motor intake(19, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees); //change the port later
 pros::Motor indexer(-20, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::Motor scoring(-9, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::adi::Pneumatics tounge('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
 
-pros::Imu imu(1);
+pros::Imu imu(1); //change the port later
 pros::Optical opticalSensor(8); //change the port later
 
 pros::Rotation verticalEnc(6);
