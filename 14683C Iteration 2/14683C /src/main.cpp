@@ -15,8 +15,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
-pros::Motor intake(19, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees); //change the port later
-pros::Motor indexer(-20, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor indexer(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::Motor scoring(-9, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::adi::Pneumatics tounge('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
@@ -131,13 +131,13 @@ void opcontrol() {
         chassis.arcade(leftY, rightX);
 
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-			intake.move(127);
+			intake.move_velocity(600);
 		}
 		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-			intake.move(-127);
+			intake.move_velocity(-600);
 		}
 		else {
-			intake.move(0);
+			intake.move_velocity(0);
 		}
 
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
