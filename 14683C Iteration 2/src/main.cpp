@@ -2,6 +2,7 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/chassis.hpp"
 #include "pros/adi.hpp"
+#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
@@ -17,14 +18,14 @@ pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEn
 
 pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees); //change the port later
 pros::Motor indexer(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
-pros::Motor scoring(-9, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor scoring(21, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::adi::Pneumatics tounge('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
 
-pros::Imu imu(1); //change the port later
+pros::Imu imu(9);
 pros::Optical opticalSensor(8); //change the port later
 
-pros::Rotation verticalEnc(6);
+pros::Rotation verticalEnc(11); 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
@@ -78,31 +79,41 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate(); // calibrate sensors
-	opticalSensor.set_led_pwm(100); // set optical sensor led brightness
+    chassis.calibrate();     // calibrate sensors
+    opticalSensor.set_led_pwm(100); // set optical sensor led brightness
 
-    // the default rate is 50. however, if you need to change the rate, you
-    // can do the following.
-    // lemlib::bufferedStdout().setRate(...);
-    // If you use bluetooth or a wired connection, you will want to have a rate of 10ms
-
-    // for more information on how the formatting for the loggers
-    // works, refer to the fmtlib docs
-
-    // thread to for brain screen and position logging
     pros::Task screenTask([&]() {
         while (true) {
-            // print robot location to the brain screen
-            pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
-            pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
-            pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            // log position telemetry
-            lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
-            // delay to save resources
+            // --- Pose debug ---
+            lemlib::Pose pose = chassis.getPose();
+            pros::lcd::print(0, "X: %.2f", pose.x);     // x
+            pros::lcd::print(1, "Y: %.2f", pose.y);     // y
+            pros::lcd::print(2, "Th: %.2f", pose.theta); // heading
+            lemlib::telemetrySink()->info("Chassis pose: {}", pose);
+
+            // --- Optical sensor debug + BLUE/RED flags ---
+            double hue = opticalSensor.get_hue();
+            int prox   = opticalSensor.get_proximity();
+
+            // You can tweak these ranges later once you see actual hue values
+            bool isBlue = (hue > 190 && hue < 220 && prox > 50);
+            bool isRed  = (hue >   5 && hue <  30 && prox > 50);
+
+            // line 3: raw sensor values
+            pros::lcd::print(3, "Hue: %6.1f Prox: %3d", hue, prox);
+
+            // line 4 & 5: BLUE / RED status
+            pros::lcd::print(4, "BLUE %s", isBlue ? "TRUE " : "FALSE");
+            pros::lcd::print(5, "RED  %s", isRed  ? "TRUE " : "FALSE");
+
+            // If hue isn't in either range, both isBlue and isRed are false,
+            // so this automatically gives you "both are FALSE" when nothing is detected.
+
             pros::delay(50);
         }
     });
 }
+
 
 
 void disabled() {}
@@ -144,23 +155,35 @@ void opcontrol() {
 			scoring.move(127);
 		}
 		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-			indexer.move(-127);
+			scoring.move(-127);
 		}
 		else {
-			indexer.move(0);
+			scoring.move(0);
 		}
 
-		if (opticalSensor.get_hue() > 190 && opticalSensor.get_hue() < 220){ 
-			// if blue is detected
-			pros::delay(500);
-			indexer.move(127);
-		}else if (opticalSensor.get_hue() > 5 && opticalSensor.get_hue() < 30) {
-			// if red is detected
-			pros::delay(500);
-			indexer.move(-127);
-		}else {
-			indexer.move(127);
-		}
+        double hue = opticalSensor.get_hue();
+		int prox = opticalSensor.get_proximity();
+
+        bool isBlue = (hue > 190 && hue < 220);
+        bool isRed  = (hue > 5   && hue < 30);
+
+        // If nothing is in range, both will be false automatically
+        pros::lcd::print(3, "Hue: %6.1f  Prox: %3d", hue, prox);
+        // line 4: show boolean states
+        pros::lcd::print(4, "BLUE %s  RED %s",
+                         isBlue ? "TRUE " : "FALSE",
+                         isRed  ? "TRUE " : "FALSE");
+		// if (opticalSensor.get_hue() > 190 && opticalSensor.get_hue() < 220){ 
+		// 	// if blue is detected
+		// 	pros::delay(500);
+		// 	indexer.move(127);
+		// }else if (opticalSensor.get_hue() > 5 && opticalSensor.get_hue() < 30) {
+		// 	// if red is detected
+		// 	pros::delay(500);
+		// 	indexer.move(-127);
+		// }else {
+		// 	indexer.move(127);
+		// }
 
 		bool flagStateTounge = false; // Variable to track the state of the Piston for the Tounge
 		bool flagStateAligner = false; // Variable to track the state of the Piston for the Aligner
