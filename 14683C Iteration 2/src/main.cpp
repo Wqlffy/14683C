@@ -6,8 +6,8 @@
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
+#include "pros/motors.h"
 #include "pros/motors.hpp"
-#include "pros/optical.hpp"
 #include "pros/rtos.hpp"
 
 
@@ -16,15 +16,13 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
-pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees); //change the port later
-pros::Motor indexer(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
-pros::Motor scoring(21, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::Motor indexer(-18, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
+pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
 pros::adi::Pneumatics tounge('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
 
 pros::Imu imu(9);
-pros::Optical opticalSensor(8); //change the port later
-
 pros::Rotation verticalEnc(11); 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0);
 
@@ -80,34 +78,19 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate();     // calibrate sensors
-    opticalSensor.set_led_pwm(100); // set optical sensor led brightness
+    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+    intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    indexer.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+
 
     pros::Task screenTask([&]() {
         while (true) {
-            // --- Pose debug ---
             lemlib::Pose pose = chassis.getPose();
             pros::lcd::print(0, "X: %.2f", pose.x);     // x
             pros::lcd::print(1, "Y: %.2f", pose.y);     // y
             pros::lcd::print(2, "Th: %.2f", pose.theta); // heading
-            lemlib::telemetrySink()->info("Chassis pose: {}", pose);
-
-            // --- Optical sensor debug + BLUE/RED flags ---
-            double hue = opticalSensor.get_hue();
-            int prox   = opticalSensor.get_proximity();
-
-            // You can tweak these ranges later once you see actual hue values
-            bool isBlue = (hue > 190 && hue < 220 && prox > 50);
-            bool isRed  = (hue >   5 && hue <  30 && prox > 50);
-
-            // line 3: raw sensor values
-            pros::lcd::print(3, "Hue: %6.1f Prox: %3d", hue, prox);
-
-            // line 4 & 5: BLUE / RED status
-            pros::lcd::print(4, "BLUE %s", isBlue ? "TRUE " : "FALSE");
-            pros::lcd::print(5, "RED  %s", isRed  ? "TRUE " : "FALSE");
-
-            // If hue isn't in either range, both isBlue and isRed are false,
-            // so this automatically gives you "both are FALSE" when nothing is detected.
 
             pros::delay(50);
         }
@@ -134,56 +117,73 @@ void autonomous() {
 
 	// async false makes the code finish the timeout before going to the next line
 }
+int slew(int current, int target, int accelStep, int decelStep) {
+    int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
+
+    if (current < target) {
+        current += step;
+        if (current > target) current = target;
+    } else if (current > target) {
+        current -= step;
+        if (current < target) current = target;
+    }
+    return current;
+}
+
+int deadband(int v, int th = 5) {
+    return (std::abs(v) < th) ? 0 : v;
+}
+
+int joystickCurve(int v) {
+    double x = v / 127.0;
+    return static_cast<int>(127.0 * x * x * x);
+}
+
 
 void opcontrol() {
+    int fwdCmd = 0;
+    int turnCmd = 0;
     while (true) {
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        chassis.arcade(leftY, rightX);
+
+        leftY = joystickCurve(leftY);
+        rightX = joystickCurve(rightX);
+        
+        leftY = deadband(leftY, 5);
+        rightX = deadband(rightX, 5);
+
+        fwdCmd = slew(fwdCmd, leftY, 4, 8);
+        turnCmd = slew(turnCmd, rightX, 4, 8);
+        chassis.arcade(fwdCmd, turnCmd);
 
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-			intake.move_velocity(600);
+		    scoring.move(127);
+            intake.move(127);
 		}
 		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-			intake.move_velocity(-600);
+            scoring.move(-127);
+            intake.move(-127);
 		}
 		else {
-			intake.move_velocity(0);
+			intake.move(0);
+            scoring.move(0);
 		}
 
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
 			scoring.move(127);
+            indexer.move(127);
 		}
 		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-			scoring.move(-127);
+			scoring.move(127);
+            indexer.move(-127);
 		}
 		else {
 			scoring.move(0);
+            indexer.move(0);
 		}
-
-        double hue = opticalSensor.get_hue();
-		int prox = opticalSensor.get_proximity();
-
-        bool isBlue = (hue > 190 && hue < 220);
-        bool isRed  = (hue > 5   && hue < 30);
-
-        // If nothing is in range, both will be false automatically
-        pros::lcd::print(3, "Hue: %6.1f  Prox: %3d", hue, prox);
-        // line 4: show boolean states
-        pros::lcd::print(4, "BLUE %s  RED %s",
-                         isBlue ? "TRUE " : "FALSE",
-                         isRed  ? "TRUE " : "FALSE");
-		// if (opticalSensor.get_hue() > 190 && opticalSensor.get_hue() < 220){ 
-		// 	// if blue is detected
-		// 	pros::delay(500);
-		// 	indexer.move(127);
-		// }else if (opticalSensor.get_hue() > 5 && opticalSensor.get_hue() < 30) {
-		// 	// if red is detected
-		// 	pros::delay(500);
-		// 	indexer.move(-127);
-		// }else {
-		// 	indexer.move(127);
-		// }
+        
+        }
 
 		bool flagStateTounge = false; // Variable to track the state of the Piston for the Tounge
 		bool flagStateAligner = false; // Variable to track the state of the Piston for the Aligner
@@ -207,6 +207,5 @@ void opcontrol() {
 				flagStateAligner = false;
 			}
 		}
-			pros::delay(20);
+			pros::delay(10);
 		}
-    }
