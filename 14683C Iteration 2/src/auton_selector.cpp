@@ -1,15 +1,14 @@
 #include "liblvgl/display/lv_display.h"
 #include "liblvgl/widgets/button/lv_button.h"
-#include "liblvgl/widgets/image/lv_image.h" 
+#include "liblvgl/widgets/image/lv_image.h"
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
-#include <cstdio> 
-#include <cmath> 
-#include <cstdint>  
+#include <cstdio>
+#include <cmath>
+#include <cstdint>
 
 extern lemlib::Chassis chassis;
 
-// image descriptor defined in 14683C.c
 extern const lv_image_dsc_t img_14683C;
 
 // Global selected auton (default to 1, e.g. "Red Left")
@@ -17,6 +16,8 @@ int selectedAuton = 1;
 
 static lv_obj_t* label_title = nullptr;
 static lv_obj_t* label_pose  = nullptr;
+static bool poseTimerStarted = false;
+
 
 static void update_title() {
     if (!label_title) return;
@@ -40,7 +41,6 @@ static void update_title() {
     lv_label_set_text(label_title, buf);
 }
 
-// Timer callback to update pose.x, pose.y, pose.theta on screen
 static void pose_timer_cb(lv_timer_t* timer) {
     (void)timer; // unused
 
@@ -71,12 +71,17 @@ static void auton_btn_event_cb(lv_event_t* e) {
     update_title();
 }
 
-void build_auton_selector() {
+extern "C" void build_base_screen() {
+    // Clear the screen
     lv_obj_clean(lv_screen_active());
 
     lv_obj_t* bg = lv_image_create(lv_screen_active());
     lv_image_set_src(bg, &img_14683C);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
+
+    lv_obj_set_style_bg_image_src(lv_screen_active(), &img_14683C, LV_PART_MAIN);
+    lv_obj_set_style_bg_image_opa(lv_screen_active(), LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_COVER, LV_PART_MAIN);
+
 
     label_title = lv_label_create(lv_screen_active());
     lv_label_set_text(label_title, "Auton: None");
@@ -93,7 +98,17 @@ void build_auton_selector() {
     lv_obj_set_style_text_color(label_pose, lv_color_hex(0xffffff), LV_PART_MAIN);
     lv_obj_align(label_pose, LV_ALIGN_BOTTOM_MID, 0, -5);
 
+    if (!poseTimerStarted) {
+        lv_timer_create(pose_timer_cb, 100, nullptr);
+        poseTimerStarted = true;
+    }
 
+    selectedAuton = 0;
+    update_title(); // will show "Auton: None"
+}
+
+
+extern "C" void build_auton_selector() {
     auto make_auton_button = [](const char* text, int id,
                                 lv_align_t align, int x_ofs, int y_ofs) {
         lv_obj_t* btn = lv_button_create(lv_screen_active());
@@ -112,22 +127,20 @@ void build_auton_selector() {
         lv_obj_center(lbl);
     };
 
-    make_auton_button("Red Left",1, LV_ALIGN_LEFT_MID,10, -60);
-    make_auton_button("Red Right",2, LV_ALIGN_RIGHT_MID,-10, -60);
+    make_auton_button("Red Left",        1, LV_ALIGN_LEFT_MID,   10, -60);
+    make_auton_button("Red Right",       2, LV_ALIGN_RIGHT_MID, -10, -60);
 
-    make_auton_button("Blue Left",3, LV_ALIGN_LEFT_MID,10, 0);
-    make_auton_button("Blue Right",4, LV_ALIGN_RIGHT_MID,-10, 0);
+    make_auton_button("Blue Left",       3, LV_ALIGN_LEFT_MID,   10, 0);
+    make_auton_button("Blue Right",      4, LV_ALIGN_RIGHT_MID, -10, 0);
 
-    make_auton_button("Red Left AWP",5, LV_ALIGN_LEFT_MID,10, 60);
-    make_auton_button("Red Right AWP",6, LV_ALIGN_RIGHT_MID,-10, 60);
+    make_auton_button("Red Left AWP",    5, LV_ALIGN_LEFT_MID,   10, 60);
+    make_auton_button("Red Right AWP",   6, LV_ALIGN_RIGHT_MID, -10, 60);
 
-    make_auton_button("Blue Left AWP",7, LV_ALIGN_LEFT_MID,10, 120);
-    make_auton_button("Blue Right AWP",8, LV_ALIGN_RIGHT_MID, -10, 120);
+    make_auton_button("Blue Left AWP",   7, LV_ALIGN_LEFT_MID,   10, 120);
+    make_auton_button("Blue Right AWP",  8, LV_ALIGN_RIGHT_MID, -10, 120);
 
-    make_auton_button("Skills",9, LV_ALIGN_BOTTOM_MID, 0, -40);
+    make_auton_button("Skills",          9, LV_ALIGN_BOTTOM_MID, 0, -40);
 
     selectedAuton = 1;
     update_title();
-
-    lv_timer_create(pose_timer_cb, 100, nullptr);
 }

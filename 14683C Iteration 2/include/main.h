@@ -30,6 +30,7 @@ void opcontrol(void);
 
 // LVGL auton selector builder
 void build_auton_selector(void);
+void build_base_screen(void);
 
 #ifdef __cplusplus
 }

@@ -84,20 +84,24 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 extern int selectedAuton;
 extern const lv_image_dsc_t img_14683C;
 void build_auton_selector();
+void build_base_screen();
 
 
 void initialize() {
     chassis.calibrate();
-    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
-    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
     indexer.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
     scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+
+    build_base_screen();
 }
 
 void disabled() {}
 
 void competition_initialize() {
+    build_base_screen();
     build_auton_selector();
     
     while (pros::competition::is_disabled()) {
@@ -138,18 +142,20 @@ void autonomous() {
         case 8: auton_blue_right_awp();  break;
         case 9: auton_skills();          break;
         default:
+            chassis.cancelAllMotions();
             break;
     }
 }
 
-int deadband(int v, int th = 5) {
+int deadband(int v, int th = 10) {
     return (std::abs(v) < th) ? 0 : v;
 }
 
-int slew(int current, int target, int accelStep, int decelStep) {
+int safe_slew(int current, int target, int accelStep, int decelStep) {
     if ((current > 0 && target < 0) || (current < 0 && target > 0)) {
         target = 0;
     }
+
     int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
 
     if (current < target) {
@@ -161,30 +167,46 @@ int slew(int current, int target, int accelStep, int decelStep) {
     }
     return current;
 }
-
 void opcontrol() {
-    build_auton_selector(); // allow changing auton while in opcontrol for testing
-    int fwdCmd = 0;
+
+    if (pros::competition::is_connected()){
+        build_auton_selector();
+        build_base_screen();
+    }
+
+    int fwdCmd  = 0;
     int turnCmd = 0;
-     while (true) {
-        int leftY  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-        int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        leftY  = deadband(leftY, 5);
-        rightX = deadband(rightX, 5);
-        leftY  = static_cast<int>(leftY  * 0.7); // raise cap if to slow 0.8 or 0.9
-        rightX = static_cast<int>(rightX * 0.7);
-        double f = leftY  / 127.0;
-        double t = rightX / 127.0;
-        double turnScale = 1.0 - 0.6 * std::abs(f);
-        if (turnScale < 0.4) turnScale = 0.4;
+
+    while (true) {
+        int rawFwd  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+        int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
+
+        rawFwd  = deadband(rawFwd, 10);
+        rawTurn = deadband(rawTurn, 10);
+
+        rawFwd  = static_cast<int>(rawFwd  * 0.85);
+        rawTurn = static_cast<int>(rawTurn * 0.85);
+
+
+        double f = rawFwd  / 127.0;
+        double t = rawTurn / 127.0;
+
+        double turnScale = 1.0 - 0.7 * std::abs(f); 
+        if (turnScale < 0.3) turnScale = 0.3;
         t *= turnScale;
 
-        leftY  = static_cast<int>(f * 127.0);
-        rightX = static_cast<int>(t * 127.0);
+        rawFwd  = static_cast<int>(f * 127.0);
+        rawTurn = static_cast<int>(t * 127.0);
 
-        fwdCmd  = slew(fwdCmd,  leftY,  2, 4); // if too slow increase accel 3, decel,6
-        turnCmd = slew(turnCmd, rightX, 2, 4);
-        chassis.curvature(fwdCmd, turnCmd, false);
+
+        fwdCmd  = safe_slew(fwdCmd,  rawFwd,  4, 8);
+        turnCmd = safe_slew(turnCmd, rawTurn, 6, 10);
+
+        bool quickTurn = (std::abs(fwdCmd) < 15);
+
+        chassis.curvature(fwdCmd, turnCmd, quickTurn);
+
+        pros::delay(10);
 
         bool r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
         bool r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
@@ -251,4 +273,4 @@ void opcontrol() {
 			}
 		}
 			pros::delay(10);
-		}
+}

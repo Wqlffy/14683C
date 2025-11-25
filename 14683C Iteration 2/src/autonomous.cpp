@@ -5,16 +5,7 @@ static void wait_ms(int ms) {
 }
 
 void auton_red_left() {
-    chassis.setPose(0, 0, 0); // x, y, heading
-
-    chassis.moveToPoint(0,10,999999);
-    wait_ms(100);
-
-    // Turn, score, whatever
-    // chassis.turnTo( ... );
-    // intake.move(127);
-    // wait_ms(500);
-    // intake.move(0);
+    chassis.setPose(0, 0, 0);
 }
 
 // Red Right
