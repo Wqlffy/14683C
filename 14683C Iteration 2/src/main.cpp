@@ -1,14 +1,20 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/chassis.hpp"
+#include "liblvgl/core/lv_obj_tree.h"
+#include "liblvgl/display/lv_display.h"
+#include "liblvgl/misc/lv_types.h"
+#include "liblvgl/widgets/image/lv_image.h"
 #include "pros/adi.hpp"
-#include "pros/llemu.hpp"
+#include "pros/llemu.hpp" // IWYU pragma: keep
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
+#include "pros/apix.h" // IWYU pragma: keep
+#include <cmath>
 
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -18,7 +24,7 @@ pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEn
 
 pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::Motor indexer(-18, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
-pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees); //change the port later
+pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
 pros::adi::Pneumatics tounge('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
 
@@ -63,61 +69,87 @@ lemlib::OdomSensors sensors(&vertical,
                             &imu 
 );
 
-lemlib::ExpoDriveCurve throttleCurve(3, // joystick deadband out of 127
-                                     10, // minimum output where drivetrain will move out of 127
-                                     1.019 // expo curve gain
+lemlib::ExpoDriveCurve throttleCurve(8, // joystick deadband out of 127
+                                     12, // minimum output where drivetrain will move out of 127
+                                     1.02 // expo curve gain
 );
 
-lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
-                                  10, // minimum output where drivetrain will move out of 127
-                                  1.019 // expo curve gain
+lemlib::ExpoDriveCurve steerCurve(10, // joystick deadband out of 127
+                                  15, // minimum output where drivetrain will move out of 127
+                                  1.02 // expo curve gain
 );
 
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
+extern int selectedAuton;
+extern const lv_image_dsc_t img_14683C;
+void build_auton_selector();
+
+
 void initialize() {
-    pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate();     // calibrate sensors
-    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
-    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+    chassis.calibrate();
+    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
     indexer.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
     scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-
-
-    pros::Task screenTask([&]() {
-        while (true) {
-            lemlib::Pose pose = chassis.getPose();
-            pros::lcd::print(0, "X: %.2f", pose.x);     // x
-            pros::lcd::print(1, "Y: %.2f", pose.y);     // y
-            pros::lcd::print(2, "Th: %.2f", pose.theta); // heading
-
-            pros::delay(50);
-        }
-    });
 }
-
-
 
 void disabled() {}
 
-void competition_initialize() {}
+void competition_initialize() {
+    build_auton_selector();
+    
+    while (pros::competition::is_disabled()) {
+        pros::delay(20);
+    }
+
+    lv_obj_clean(lv_screen_active());
+
+    lv_obj_t* bg = lv_image_create(lv_screen_active());
+    lv_image_set_src(bg, &img_14683C);
+    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
+}
 
 // get a path used for pure pursuit
 // this needs to be put outside a function
-ASSET(example_txt); // '.' replaced with "_" to make c++ happy
+// ASSET(example_txt); // '.' replaced with "_" to make c++ happy
+
+// void autonomous() {
+// 	chassis.setPose(0, 0, 0); 
+// 	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
+	
+// 	// chassis.turnToHeading(180, 999999); //tuning Angular PID
+// 	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
+// 	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
+
+// 	// async false makes the code finish the timeout before going to the next line
+// }
 
 void autonomous() {
-	chassis.setPose(0, 0, 0); 
-	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
-	
-	// chassis.turnToHeading(180, 999999); //tuning Angular PID
-	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
-	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
-
-	// async false makes the code finish the timeout before going to the next line
+    switch (selectedAuton) {
+        case 1: auton_red_left();        break;
+        case 2: auton_red_right();       break;
+        case 3: auton_blue_left();       break;
+        case 4: auton_blue_right();      break;
+        case 5: auton_red_left_awp();    break;
+        case 6: auton_red_right_awp();   break;
+        case 7: auton_blue_left_awp();   break;
+        case 8: auton_blue_right_awp();  break;
+        case 9: auton_skills();          break;
+        default:
+            break;
+    }
 }
+
+int deadband(int v, int th = 5) {
+    return (std::abs(v) < th) ? 0 : v;
+}
+
 int slew(int current, int target, int accelStep, int decelStep) {
+    if ((current > 0 && target < 0) || (current < 0 && target > 0)) {
+        target = 0;
+    }
     int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
 
     if (current < target) {
@@ -130,59 +162,70 @@ int slew(int current, int target, int accelStep, int decelStep) {
     return current;
 }
 
-int deadband(int v, int th = 5) {
-    return (std::abs(v) < th) ? 0 : v;
-}
-
-int joystickCurve(int v) {
-    double x = v / 127.0;
-    return static_cast<int>(127.0 * x * x * x);
-}
-
-
 void opcontrol() {
+    build_auton_selector(); // allow changing auton while in opcontrol for testing
     int fwdCmd = 0;
     int turnCmd = 0;
-    while (true) {
-        int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+     while (true) {
+        int leftY  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-
-        leftY = joystickCurve(leftY);
-        rightX = joystickCurve(rightX);
-        
-        leftY = deadband(leftY, 5);
+        leftY  = deadband(leftY, 5);
         rightX = deadband(rightX, 5);
+        leftY  = static_cast<int>(leftY  * 0.7); // raise cap if to slow 0.8 or 0.9
+        rightX = static_cast<int>(rightX * 0.7);
+        double f = leftY  / 127.0;
+        double t = rightX / 127.0;
+        double turnScale = 1.0 - 0.6 * std::abs(f);
+        if (turnScale < 0.4) turnScale = 0.4;
+        t *= turnScale;
 
-        fwdCmd = slew(fwdCmd, leftY, 4, 8);
-        turnCmd = slew(turnCmd, rightX, 4, 8);
-        chassis.arcade(fwdCmd, turnCmd);
+        leftY  = static_cast<int>(f * 127.0);
+        rightX = static_cast<int>(t * 127.0);
 
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-		    scoring.move(127);
+        fwdCmd  = slew(fwdCmd,  leftY,  2, 4); // if too slow increase accel 3, decel,6
+        turnCmd = slew(turnCmd, rightX, 2, 4);
+        chassis.curvature(fwdCmd, turnCmd, false);
+
+        bool r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
+        bool r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+        bool l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+        bool l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+
+        if (r1 && r2) {
             intake.move(127);
-		}
-		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
             scoring.move(-127);
-            intake.move(-127);
-		}
-		else {
-			intake.move(0);
-            scoring.move(0);
-		}
-
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
-			scoring.move(127);
-            indexer.move(127);
-		}
-		else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-			scoring.move(127);
-            indexer.move(-127);
-		}
-		else {
-			scoring.move(0);
             indexer.move(0);
-		}
-        
+        }
+        else if (l1 && l2) {
+            intake.move(0);
+            scoring.move(-127);
+            indexer.move(0);
+        }
+        else {
+            if (r2) {
+                intake.move(127);
+            }
+            else if (r1) {
+                intake.move(-127);
+            }
+            else {
+                intake.move(0);
+            }
+
+            if (l2) {
+                scoring.move(127);
+                indexer.move(127);
+            }
+            else if (l1) {
+                scoring.move(127);
+                indexer.move(-127);
+            }
+            else {
+                scoring.move(0);
+                indexer.move(0);
+            }
+        }
+
         }
 
 		bool flagStateTounge = false; // Variable to track the state of the Piston for the Tounge
