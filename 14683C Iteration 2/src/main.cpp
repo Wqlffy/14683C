@@ -25,8 +25,8 @@ pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEn
 pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::Motor indexer(-18, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
 pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
-pros::adi::Pneumatics tongue('A', false); //change port later
-pros::adi::Pneumatics aligner('B', false); //change port later
+pros::adi::Pneumatics tongue('A', false); 
+pros::adi::Pneumatics aligner('B', false); 
 
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
@@ -180,14 +180,14 @@ int slewTurn(int current, int target, int accelStep, int decelStep) {
     return current;
 }
 void opcontrol() {
+    chassis.cancelAllMotions();
 
-    if (pros::competition::is_connected()){
-        build_auton_selector();
-        build_base_screen();
-    }
+    int fwdCmd  = 0;
+    int turnCmd = 0;
 
-    int fwdCmd  = 0; 
-    int turnCmd = 0; 
+    bool flagStateTongue  = false;
+    bool flagStateAligner = false;
+    bool brakeMode        = false;
 
     while (true) {
         int rawFwd  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
@@ -195,13 +195,19 @@ void opcontrol() {
 
         rawFwd  = deadband(rawFwd, 8);
         rawTurn = deadband(rawTurn, 8);
-        rawFwd  = static_cast<int>(rawFwd  * 0.95);
-        rawTurn = static_cast<int>(rawTurn * 0.95);
+
+        double speedScale = 1.0;
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+            speedScale = 0.5;
+        }
+
+        rawFwd  = static_cast<int>(rawFwd  * 0.95 * speedScale);
+        rawTurn = static_cast<int>(rawTurn * 0.95 * speedScale);
 
         double f = rawFwd  / 127.0;
         double t = rawTurn / 127.0;
 
-        double turnScale = 1.0 - 0.4 * std::abs(f);
+        double turnScale = 1.0 - 0.4 * std::abs(f); // 0.6–1.0 range
         if (turnScale < 0.6) turnScale = 0.6;
         t *= turnScale;
 
@@ -215,34 +221,56 @@ void opcontrol() {
 
         chassis.curvature(fwdCmd, turnCmd, quickTurn);
 
-        pros::delay(10);
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+            chassis.cancelAllMotions();
+            leftMotors.move(0);
+            rightMotors.move(0);
+            intake.move(0);
+            indexer.move(0);
+            scoring.move(0);
+            fwdCmd  = 0;
+            turnCmd = 0;
+        }
 
-        if (pros::E_CONTROLLER_DIGITAL_R1 && pros::E_CONTROLLER_DIGITAL_R2) {
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
+            brakeMode = !brakeMode;
+            auto mode = brakeMode ? pros::E_MOTOR_BRAKE_BRAKE
+                                  : pros::E_MOTOR_BRAKE_COAST;
+            leftMotors.set_brake_mode_all(mode);
+            rightMotors.set_brake_mode_all(mode);
+        }
+
+        bool r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
+        bool r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+        bool l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+        bool l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+
+        if (r1 && r2) {
             intake.move(127);
             scoring.move(-127);
             indexer.move(0);
         }
-        else if (pros::E_CONTROLLER_DIGITAL_L1 && pros::E_CONTROLLER_DIGITAL_L2) {
+        else if (l1 && l2) {
             intake.move(0);
             scoring.move(-127);
             indexer.move(0);
         }
         else {
-            if (pros::E_CONTROLLER_DIGITAL_R2) {
+            if (r2) {
                 intake.move(127);
             }
-            else if (pros::E_CONTROLLER_DIGITAL_R1) {
+            else if (r1) {
                 intake.move(-127);
             }
             else {
                 intake.move(0);
             }
 
-            if (pros::E_CONTROLLER_DIGITAL_L2) {
+            if (l2) {
                 scoring.move(127);
                 indexer.move(127);
             }
-            else if (pros::E_CONTROLLER_DIGITAL_L1) {
+            else if (l1) {
                 scoring.move(127);
                 indexer.move(-127);
             }
@@ -252,29 +280,18 @@ void opcontrol() {
             }
         }
 
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+            flagStateTongue = !flagStateTongue;
+            if (flagStateTongue) tongue.extend();
+            else                 tongue.retract();
         }
 
-		bool flagStateTongue = false; // Variable to track the state of the Piston for the Tounge
-		bool flagStateAligner = false; // Variable to track the state of the Piston for the Aligner
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
+            flagStateAligner = !flagStateAligner;
+            if (flagStateAligner) aligner.extend();
+            else                  aligner.retract();
+        }
 
-		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)){
-			if (flagStateTongue == false){
-				tongue.extend();
-				flagStateTongue = true;
-			}else {
-				tongue.retract();
-				flagStateTongue = false;
-			}
-		}
-
-		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
-			if (flagStateAligner == false){
-				aligner.extend();
-				flagStateAligner = true;
-			}else {
-				aligner.retract();
-				flagStateAligner = false;
-			}
-		}
-			pros::delay(10);
+        pros::delay(10);
     }
+}
