@@ -25,7 +25,7 @@ pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEn
 pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 pros::Motor indexer(-18, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
 pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
-pros::adi::Pneumatics tounge('A', false); //change port later
+pros::adi::Pneumatics tongue('A', false); //change port later
 pros::adi::Pneumatics aligner('B', false); //change port later
 
 pros::Imu imu(9);
@@ -151,11 +151,23 @@ int deadband(int v, int th = 10) {
     return (std::abs(v) < th) ? 0 : v;
 }
 
-int safe_slew(int current, int target, int accelStep, int decelStep) {
+int slewForward(int current, int target, int accelStep, int decelStep) {
     if ((current > 0 && target < 0) || (current < 0 && target > 0)) {
         target = 0;
     }
 
+    int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
+
+    if (current < target) {
+        current += step;
+        if (current > target) current = target;
+    } else if (current > target) {
+        current -= step;
+        if (current < target) current = target;
+    }
+    return current;
+}
+int slewTurn(int current, int target, int accelStep, int decelStep) {
     int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
 
     if (current < target) {
@@ -174,71 +186,63 @@ void opcontrol() {
         build_base_screen();
     }
 
-    int fwdCmd  = 0;
-    int turnCmd = 0;
+    int fwdCmd  = 0; 
+    int turnCmd = 0; 
 
     while (true) {
         int rawFwd  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-        rawFwd  = deadband(rawFwd, 10);
-        rawTurn = deadband(rawTurn, 10);
-
-        rawFwd  = static_cast<int>(rawFwd  * 0.85);
-        rawTurn = static_cast<int>(rawTurn * 0.85);
-
+        rawFwd  = deadband(rawFwd, 8);
+        rawTurn = deadband(rawTurn, 8);
+        rawFwd  = static_cast<int>(rawFwd  * 0.95);
+        rawTurn = static_cast<int>(rawTurn * 0.95);
 
         double f = rawFwd  / 127.0;
         double t = rawTurn / 127.0;
 
-        double turnScale = 1.0 - 0.7 * std::abs(f); 
-        if (turnScale < 0.3) turnScale = 0.3;
+        double turnScale = 1.0 - 0.4 * std::abs(f);
+        if (turnScale < 0.6) turnScale = 0.6;
         t *= turnScale;
 
         rawFwd  = static_cast<int>(f * 127.0);
         rawTurn = static_cast<int>(t * 127.0);
 
+        fwdCmd  = slewForward(fwdCmd,  rawFwd,  5, 10);
+        turnCmd = slewTurn(turnCmd,    rawTurn, 6, 10);
 
-        fwdCmd  = safe_slew(fwdCmd,  rawFwd,  4, 8);
-        turnCmd = safe_slew(turnCmd, rawTurn, 6, 10);
-
-        bool quickTurn = (std::abs(fwdCmd) < 15);
+        bool quickTurn = (std::abs(fwdCmd) < 20);
 
         chassis.curvature(fwdCmd, turnCmd, quickTurn);
 
         pros::delay(10);
 
-        bool r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
-        bool r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-        bool l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
-        bool l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-
-        if (r1 && r2) {
+        if (pros::E_CONTROLLER_DIGITAL_R1 && pros::E_CONTROLLER_DIGITAL_R2) {
             intake.move(127);
             scoring.move(-127);
             indexer.move(0);
         }
-        else if (l1 && l2) {
+        else if (pros::E_CONTROLLER_DIGITAL_L1 && pros::E_CONTROLLER_DIGITAL_L2) {
             intake.move(0);
             scoring.move(-127);
             indexer.move(0);
         }
         else {
-            if (r2) {
+            if (pros::E_CONTROLLER_DIGITAL_R2) {
                 intake.move(127);
             }
-            else if (r1) {
+            else if (pros::E_CONTROLLER_DIGITAL_R1) {
                 intake.move(-127);
             }
             else {
                 intake.move(0);
             }
 
-            if (l2) {
+            if (pros::E_CONTROLLER_DIGITAL_L2) {
                 scoring.move(127);
                 indexer.move(127);
             }
-            else if (l1) {
+            else if (pros::E_CONTROLLER_DIGITAL_L1) {
                 scoring.move(127);
                 indexer.move(-127);
             }
@@ -250,16 +254,16 @@ void opcontrol() {
 
         }
 
-		bool flagStateTounge = false; // Variable to track the state of the Piston for the Tounge
+		bool flagStateTongue = false; // Variable to track the state of the Piston for the Tounge
 		bool flagStateAligner = false; // Variable to track the state of the Piston for the Aligner
 
 		if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)){
-			if (flagStateTounge == false){
-				tounge.extend();
-				flagStateTounge = true;
+			if (flagStateTongue == false){
+				tongue.extend();
+				flagStateTongue = true;
 			}else {
-				tounge.retract();
-				flagStateTounge = false;
+				tongue.retract();
+				flagStateTongue = false;
 			}
 		}
 
@@ -273,4 +277,4 @@ void opcontrol() {
 			}
 		}
 			pros::delay(10);
-}
+    }
