@@ -109,40 +109,29 @@ void competition_initialize() {
 // ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 
 void autonomous() {
-	chassis.setPose(0, 0, 0); 
-	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
-	
-	// chassis.turnToHeading(180, 999999); //tuning Angular PID
-	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
-	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
-
-	// async false makes the code finish the timeout before going to the next line
+    switch (selectedAuton) {
+        case 1: auton_red_left();        break;
+        case 2: auton_red_right();       break;
+        case 3: auton_blue_left();       break;
+        case 4: auton_blue_right();      break;
+        case 5: auton_red_left_awp();    break;
+        case 6: auton_red_right_awp();   break;
+        case 7: auton_blue_left_awp();   break;
+        case 8: auton_blue_right_awp();  break;
+        default:
+            chassis.cancelAllMotions();
+            break;
+    }
 }
-
-// void autonomous() {
-//     switch (selectedAuton) {
-//         case 1: auton_red_left();        break;
-//         case 2: auton_red_right();       break;
-//         case 3: auton_blue_left();       break;
-//         case 4: auton_blue_right();      break;
-//         case 5: auton_red_left_awp();    break;
-//         case 6: auton_red_right_awp();   break;
-//         case 7: auton_blue_left_awp();   break;
-//         case 8: auton_blue_right_awp();  break;
-//         default:
-//             chassis.cancelAllMotions();
-//             break;
-//     }
-// }
 
 static int deadbandInt(int val, int threshold) {
     return (std::abs(val) < threshold) ? 0 : val;
 }
 
 constexpr double PI = 3.141592653589793;
-constexpr double CD_TURN_NONLINEARITY = 0.5;  // 0.4–0.7 typical
+constexpr double CD_TURN_NONLINEARITY = 0.6;
 constexpr double CD_NEG_INERTIA_SCALAR = 3.0;  // strength of 'flick' boost
-constexpr double CD_SENSITIVITY = 1.0;
+constexpr double CD_SENSITIVITY = 1.2;
 constexpr double DRIVE_DEADBAND = 0.05;
 constexpr double DRIVE_SLEW_UP = 0.04;
 constexpr double DRIVE_SLEW_DOWN = 0.08;
@@ -153,7 +142,7 @@ static double prevTurn = 0.0;
 static double prevThrottle = 0.0;
 
 static double turnRemapping(double iturn) {
-    double denominator = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY);
+    double denominator = std::sin(PI / 2.0 * 0.6);
     if (denominator == 0.0) return iturn; 
     double first = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * iturn) / denominator;
     return std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * first) / denominator;

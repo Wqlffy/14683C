@@ -1,4 +1,3 @@
-#include "liblvgl/core/lv_obj_style_gen.h"
 #include "liblvgl/display/lv_display.h"
 #include "liblvgl/font/lv_font.h"
 #include "liblvgl/lv_conf_internal.h"
