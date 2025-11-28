@@ -1,6 +1,8 @@
+#include "liblvgl/core/lv_obj_style_gen.h"
 #include "liblvgl/display/lv_display.h"
+#include "liblvgl/font/lv_font.h"
+#include "liblvgl/lv_conf_internal.h"
 #include "liblvgl/widgets/button/lv_button.h"
-#include "liblvgl/widgets/image/lv_image.h"
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include <cstdio>
@@ -32,7 +34,6 @@ static void update_title() {
         case 6: name = "Red Right AWP";      break;
         case 7: name = "Blue Left AWP";      break;
         case 8: name = "Blue Right AWP";     break;
-        case 9: name = "Skills";             break;
         default: break;
     }
 
@@ -42,7 +43,7 @@ static void update_title() {
 }
 
 static void pose_timer_cb(lv_timer_t* timer) {
-    (void)timer; // unused
+    (void)timer;
 
     if (!label_pose) return;
 
@@ -72,30 +73,28 @@ static void auton_btn_event_cb(lv_event_t* e) {
 }
 
 extern "C" void build_base_screen() {
-    // Clear the screen
     lv_obj_clean(lv_screen_active());
-
-    lv_obj_t* bg = lv_image_create(lv_screen_active());
-    lv_image_set_src(bg, &img_14683C);
 
     lv_obj_set_style_bg_image_src(lv_screen_active(), &img_14683C, LV_PART_MAIN);
     lv_obj_set_style_bg_image_opa(lv_screen_active(), LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_COVER, LV_PART_MAIN);
 
-
     label_title = lv_label_create(lv_screen_active());
     lv_label_set_text(label_title, "Auton: None");
     lv_obj_set_style_text_color(label_title, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_title, LV_FONT_MONTSERRAT_22, LV_PART_MAIN);
     lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, 5);
 
     lv_obj_t* label_team = lv_label_create(lv_screen_active());
     lv_label_set_text(label_team, "Team 14683C");
     lv_obj_set_style_text_color(label_team, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_team, &lv_font_montserrat_18, LV_PART_MAIN);
     lv_obj_align(label_team, LV_ALIGN_TOP_MID, 0, 25);
 
     label_pose = lv_label_create(lv_screen_active());
     lv_label_set_text(label_pose, "Pose: x=0.0  y=0.0  θ=0.0°");
     lv_obj_set_style_text_color(label_pose, lv_color_hex(0xffffff), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_pose, &lv_font_montserrat_20, LV_PART_MAIN);
     lv_obj_align(label_pose, LV_ALIGN_BOTTOM_MID, 0, -5);
 
     if (!poseTimerStarted) {
@@ -104,7 +103,7 @@ extern "C" void build_base_screen() {
     }
 
     selectedAuton = 0;
-    update_title(); // will show "Auton: None"
+    update_title();
 }
 
 
@@ -138,8 +137,6 @@ extern "C" void build_auton_selector() {
 
     make_auton_button("Blue Left AWP",   7, LV_ALIGN_LEFT_MID,   10, 120);
     make_auton_button("Blue Right AWP",  8, LV_ALIGN_RIGHT_MID, -10, 120);
-
-    make_auton_button("Skills",          9, LV_ALIGN_BOTTOM_MID, 0, -40);
 
     selectedAuton = 1;
     update_title();

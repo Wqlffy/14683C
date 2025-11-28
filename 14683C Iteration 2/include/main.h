@@ -53,9 +53,6 @@ void auton_red_right_awp();
 void auton_blue_left_awp();
 void auton_blue_right_awp();
 
-// Skills
-void auton_skills();
-
 #endif
 
 #endif  // _PROS_MAIN_H_

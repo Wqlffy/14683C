@@ -15,7 +15,7 @@
 #include "pros/rtos.hpp"
 #include "pros/apix.h" // IWYU pragma: keep
 #include <cmath>
-
+#include <utility>
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -62,22 +62,11 @@ lemlib::ControllerSettings angularController(2,// proportional gain (kP)
                                              0 // maximum acceleration (slew)
 );
 
-lemlib::OdomSensors sensors(&vertical,
-                            nullptr,
-                            nullptr,
-                            nullptr,
-                            &imu 
-);
+lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
 
-lemlib::ExpoDriveCurve throttleCurve(8, // joystick deadband out of 127
-                                     12, // minimum output where drivetrain will move out of 127
-                                     1.02 // expo curve gain
-);
+lemlib::ExpoDriveCurve throttleCurve(8, 12, 1.02);
 
-lemlib::ExpoDriveCurve steerCurve(10, // joystick deadband out of 127
-                                  15, // minimum output where drivetrain will move out of 127
-                                  1.02 // expo curve gain
-);
+lemlib::ExpoDriveCurve steerCurve(10, 15, 1.02);
 
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
@@ -119,126 +108,156 @@ void competition_initialize() {
 // this needs to be put outside a function
 // ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 
-// void autonomous() {
-// 	chassis.setPose(0, 0, 0); 
-// 	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
+void autonomous() {
+	chassis.setPose(0, 0, 0); 
+	chassis.moveToPoint(0, 10, 999999); // tuning Linear PID
 	
-// 	// chassis.turnToHeading(180, 999999); //tuning Angular PID
-// 	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
-// 	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
+	// chassis.turnToHeading(180, 999999); //tuning Angular PID
+	// chassis.swingToHeading(45, lemlib::DriveSide::RIGHT, 750); // fast turns (speed)
+	// chassis.turnToHeading(45, 750); // slower turns (accuracy)
 
-// 	// async false makes the code finish the timeout before going to the next line
+	// async false makes the code finish the timeout before going to the next line
+}
+
+// void autonomous() {
+//     switch (selectedAuton) {
+//         case 1: auton_red_left();        break;
+//         case 2: auton_red_right();       break;
+//         case 3: auton_blue_left();       break;
+//         case 4: auton_blue_right();      break;
+//         case 5: auton_red_left_awp();    break;
+//         case 6: auton_red_right_awp();   break;
+//         case 7: auton_blue_left_awp();   break;
+//         case 8: auton_blue_right_awp();  break;
+//         default:
+//             chassis.cancelAllMotions();
+//             break;
+//     }
 // }
 
-void autonomous() {
-    switch (selectedAuton) {
-        case 1: auton_red_left();        break;
-        case 2: auton_red_right();       break;
-        case 3: auton_blue_left();       break;
-        case 4: auton_blue_right();      break;
-        case 5: auton_red_left_awp();    break;
-        case 6: auton_red_right_awp();   break;
-        case 7: auton_blue_left_awp();   break;
-        case 8: auton_blue_right_awp();  break;
-        case 9: auton_skills();          break;
-        default:
-            chassis.cancelAllMotions();
-            break;
+static int deadbandInt(int val, int threshold) {
+    return (std::abs(val) < threshold) ? 0 : val;
+}
+
+constexpr double PI = 3.141592653589793;
+constexpr double CD_TURN_NONLINEARITY = 0.5;  // 0.4–0.7 typical
+constexpr double CD_NEG_INERTIA_SCALAR = 3.0;  // strength of 'flick' boost
+constexpr double CD_SENSITIVITY = 1.0;
+constexpr double DRIVE_DEADBAND = 0.05;
+constexpr double DRIVE_SLEW_UP = 0.04;
+constexpr double DRIVE_SLEW_DOWN = 0.08;
+
+static double quickStopAccumlator  = 0.0;
+static double negInertiaAccumlator = 0.0;
+static double prevTurn = 0.0;
+static double prevThrottle = 0.0;
+
+static double turnRemapping(double iturn) {
+    double denominator = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY);
+    if (denominator == 0.0) return iturn; 
+    double first = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * iturn) / denominator;
+    return std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * first) / denominator;
+}
+
+static void updateAccumulators() {
+    if (negInertiaAccumlator > 1.0) {
+        negInertiaAccumlator -= 1.0;
+    } 
+    else if (negInertiaAccumlator < -1.0) {
+        negInertiaAccumlator += 1.0;
+    } 
+    else {
+        negInertiaAccumlator = 0.0;
+    }
+
+    if (quickStopAccumlator > 1.0) {
+        quickStopAccumlator -= 1.0;
+    } 
+    else if (quickStopAccumlator < -1.0) {
+        quickStopAccumlator += 1.0;
+    } 
+    else {
+        quickStopAccumlator = 0.0;
     }
 }
 
-int deadband(int v, int th = 10) {
-    return (std::abs(v) < th) ? 0 : v;
-}
+static std::pair<double, double> cheesyArcade(double ithrottle, double iturn) {
+    bool turnInPlace = false;
+    double linearCmd = ithrottle;
 
-int slewForward(int current, int target, int accelStep, int decelStep) {
-    if ((current > 0 && target < 0) || (current < 0 && target > 0)) {
-        target = 0;
+    if (std::fabs(ithrottle) < DRIVE_DEADBAND && std::fabs(iturn) > DRIVE_DEADBAND) {
+        linearCmd  = 0.0;
+        turnInPlace = true;
+    }
+    else {
+        double delta = ithrottle - prevThrottle;
+        if (delta > DRIVE_SLEW_UP) {
+            linearCmd = prevThrottle + DRIVE_SLEW_UP;
+        } 
+        else if (delta < -DRIVE_SLEW_DOWN) {
+            linearCmd = prevThrottle - DRIVE_SLEW_DOWN;
+        } 
+        else {
+            linearCmd = ithrottle;
+        }
     }
 
-    int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
+    double remappedTurn = turnRemapping(iturn);
 
-    if (current < target) {
-        current += step;
-        if (current > target) current = target;
-    } else if (current > target) {
-        current -= step;
-        if (current < target) current = target;
-    }
-    return current;
-}
-int slewTurn(int current, int target, int accelStep, int decelStep) {
-    int step = (std::abs(target) < std::abs(current)) ? decelStep : accelStep;
+    double forwardOut;
+    double turnOut;
 
-    if (current < target) {
-        current += step;
-        if (current > target) current = target;
-    } else if (current > target) {
-        current -= step;
-        if (current < target) current = target;
+    if (turnInPlace) {
+        double x = remappedTurn;
+        forwardOut = 0.0;
+        turnOut = x * std::fabs(x); 
+    } 
+    else {
+        double negInertiaPower = (iturn - prevTurn) * CD_NEG_INERTIA_SCALAR;
+        negInertiaAccumlator += negInertiaPower;
+
+        double angularCmd =
+            std::fabs(linearCmd) * (remappedTurn + negInertiaAccumlator) * CD_SENSITIVITY - quickStopAccumlator;
+
+        forwardOut = linearCmd;
+        turnOut = angularCmd;
+
+        updateAccumulators();
     }
-    return current;
+
+    prevTurn = iturn;
+    prevThrottle = linearCmd;
+
+    forwardOut = std::fmax(-1.0, std::fmin(1.0, forwardOut));
+    turnOut = std::fmax(-1.0, std::fmin(1.0, turnOut));
+
+    return {forwardOut, turnOut};
 }
+
 void opcontrol() {
     chassis.cancelAllMotions();
 
-    int fwdCmd  = 0;
-    int turnCmd = 0;
-
-    bool flagStateTongue  = false;
+    bool flagStateTongue = false;
     bool flagStateAligner = false;
-    bool brakeMode        = false;
-
     while (true) {
-        int rawFwd  = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+
+        int rawFwd = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-        rawFwd  = deadband(rawFwd, 8);
-        rawTurn = deadband(rawTurn, 8);
+        rawFwd = deadbandInt(rawFwd, 8);
+        rawTurn = deadbandInt(rawTurn, 8);
 
-        double speedScale = 1.0;
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
-            speedScale = 0.5;
-        }
+        double ithrottle = rawFwd  / 127.0;
+        double iturn = rawTurn / 127.0;
 
-        rawFwd  = static_cast<int>(rawFwd  * 0.95 * speedScale);
-        rawTurn = static_cast<int>(rawTurn * 0.95 * speedScale);
+        auto driveCmd = cheesyArcade(ithrottle, iturn);
+        double fwdCmd = driveCmd.first;
+        double turnCmd = driveCmd.second;
 
-        double f = rawFwd  / 127.0;
-        double t = rawTurn / 127.0;
+        int fwdPower = static_cast<int>(fwdCmd  * 127.0);
+        int turnPower  = static_cast<int>(turnCmd * 127.0);
 
-        double turnScale = 1.0 - 0.4 * std::abs(f); // 0.6–1.0 range
-        if (turnScale < 0.6) turnScale = 0.6;
-        t *= turnScale;
-
-        rawFwd  = static_cast<int>(f * 127.0);
-        rawTurn = static_cast<int>(t * 127.0);
-
-        fwdCmd  = slewForward(fwdCmd,  rawFwd,  5, 10);
-        turnCmd = slewTurn(turnCmd,    rawTurn, 6, 10);
-
-        bool quickTurn = (std::abs(fwdCmd) < 20);
-
-        chassis.curvature(fwdCmd, turnCmd, quickTurn);
-
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
-            chassis.cancelAllMotions();
-            leftMotors.move(0);
-            rightMotors.move(0);
-            intake.move(0);
-            indexer.move(0);
-            scoring.move(0);
-            fwdCmd  = 0;
-            turnCmd = 0;
-        }
-
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
-            brakeMode = !brakeMode;
-            auto mode = brakeMode ? pros::E_MOTOR_BRAKE_BRAKE
-                                  : pros::E_MOTOR_BRAKE_COAST;
-            leftMotors.set_brake_mode_all(mode);
-            rightMotors.set_brake_mode_all(mode);
-        }
+        chassis.arcade(fwdPower, turnPower);
 
         bool r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
         bool r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
@@ -282,14 +301,18 @@ void opcontrol() {
 
         if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
             flagStateTongue = !flagStateTongue;
-            if (flagStateTongue) tongue.extend();
-            else                 tongue.retract();
+            if (flagStateTongue) 
+                tongue.extend();
+            else 
+                tongue.retract();
         }
 
         if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
             flagStateAligner = !flagStateAligner;
-            if (flagStateAligner) aligner.extend();
-            else                  aligner.retract();
+            if (flagStateAligner) 
+                aligner.extend();
+            else 
+                aligner.retract();
         }
 
         pros::delay(10);

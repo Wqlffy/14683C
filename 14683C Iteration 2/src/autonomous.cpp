@@ -40,6 +40,3 @@ void auton_blue_right_awp() {
     chassis.setPose(0, 0, 0);
 }
 
-void auton_skills() {
-    chassis.setPose(0, 0, 0);
-}
