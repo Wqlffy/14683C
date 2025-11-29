@@ -86,10 +86,10 @@ void competition_initialize() {
     }
 }
 
-ASSET(skills)
+ASSET(skills_txt)
 void autonomous() {
     chassis.setPose(-46.362, 0.099, 86.645);
-    chassis.follow(skills, 14, 45000, true, true);
+    chassis.follow(skills_txt, 14, 45000, true, true);
 
     chassis.waitUntil(53.971);
     intake.move_voltage(12000);
