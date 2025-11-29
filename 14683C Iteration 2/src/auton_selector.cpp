@@ -121,11 +121,11 @@ extern "C" void build_auton_selector() {
         lv_obj_center(lbl);
     };
 
-    make_auton_button("Red Left",        1, LV_ALIGN_LEFT_MID,   10, -60);
-    make_auton_button("Red Right",       2, LV_ALIGN_RIGHT_MID, -10, -60);
+    make_auton_button("Red Left", 1, LV_ALIGN_LEFT_MID,   10, -60);
+    make_auton_button("Red Right", 2, LV_ALIGN_RIGHT_MID, -10, -60);
 
-    make_auton_button("Blue Left",       3, LV_ALIGN_LEFT_MID,   10, 0);
-    make_auton_button("Blue Right",      4, LV_ALIGN_RIGHT_MID, -10, 0);
+    make_auton_button("Blue Left", 3, LV_ALIGN_LEFT_MID,   10, 0);
+    make_auton_button("Blue Right", 4, LV_ALIGN_RIGHT_MID, -10, 0);
 
     selectedAuton = 1;
     update_title();

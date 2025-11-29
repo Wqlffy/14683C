@@ -2,10 +2,10 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 
-ASSET(red_left);
-ASSET(red_right);
-ASSET(blue_left);
-ASSET(blue_right);
+ASSET(red_left_txt);
+ASSET(red_right_txt);
+ASSET(blue_left_txt);
+ASSET(blue_right_txt);
 
 extern lemlib::Chassis chassis;
 
@@ -22,7 +22,7 @@ static void wait_ms(int ms) {
 
 void auton_red_left() {
     chassis.setPose(-46.224, 7.195, 0); 
-    chassis.follow(red_left, 12, 8000, true, true);
+    chassis.follow(red_left_txt, 12, 8000, true, true);
 
     //start intake + tongue out
     chassis.waitUntil(43.952);
@@ -73,7 +73,7 @@ void auton_red_left() {
 
 void auton_red_right() {
     chassis.setPose(-46.224, -7.195, 0);
-    chassis.follow(red_left, 12, 8000, true, true);
+    chassis.follow(red_right_txt, 12, 8000, true, true);
 
     //start intake + tongue out
     chassis.waitUntil(43.952);
@@ -124,7 +124,7 @@ void auton_red_right() {
 
 void auton_blue_left() {
     chassis.setPose(46.224, -7.195, 0);
-    chassis.follow(red_left, 12, 8000, true, true);
+    chassis.follow(blue_left_txt, 12, 8000, true, true);
 
     //start intake + tongue out
     chassis.waitUntil(43.952);
@@ -175,7 +175,7 @@ void auton_blue_left() {
 
 void auton_blue_right() {
     chassis.setPose(46.224, 7.195, 0);
-    chassis.follow(red_left, 12, 8000, true, true);
+    chassis.follow(blue_right_txt, 12, 8000, true, true);
 
     //start intake + tongue out
     chassis.waitUntil(43.952);
