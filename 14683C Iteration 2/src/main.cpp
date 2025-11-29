@@ -76,7 +76,7 @@ extern int selectedAuton;
 extern const lv_image_dsc_t img_14683C;
 void build_auton_selector();
 void build_base_screen();
-
+extern void auton_controller_task(void* param);
 
 void initialize() {
     chassis.calibrate();
@@ -87,6 +87,8 @@ void initialize() {
     scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
 
     build_base_screen();
+
+    pros::Task autonSelTask(auton_controller_task,nullptr,"Auton Selector");
 }
 
 void disabled() {}
@@ -106,14 +108,22 @@ void competition_initialize() {
     lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
 }
 
+extern int selectedAuton;
 void autonomous() {
     switch (selectedAuton) {
-        case 1: auton_red_left();        break;
-        case 2: auton_red_right();       break;
-        case 3: auton_blue_left();       break;
-        case 4: auton_blue_right();      break;
+        case 1:
+            auton_red_left();
+            break;
+        case 2:
+            auton_red_right();
+            break;
+        case 3:
+            auton_blue_left();
+            break;
+        case 4:
+            auton_blue_right();
+            break;
         default:
-            chassis.cancelAllMotions();
             break;
     }
 }

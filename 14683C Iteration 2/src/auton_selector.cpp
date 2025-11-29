@@ -12,25 +12,29 @@ extern lemlib::Chassis chassis;
 
 extern const lv_image_dsc_t img_14683C;
 
+extern pros::Controller controller;
+
 // Global selected auton (default to 1, e.g. "Red Left")
 int selectedAuton = 1;
+int autonCursor = 1;
 
 static lv_obj_t* label_title = nullptr;
 static lv_obj_t* label_pose  = nullptr;
 static bool poseTimerStarted = false;
 
-
+static const char* get_auton_name(int id) {
+    switch (id) {
+        case 1: return "Red Left";
+        case 2: return "Red Right";
+        case 3: return "Blue Left";
+        case 4: return "Blue Right";
+        default: return "None";
+    }
+}
 static void update_title() {
     if (!label_title) return;
 
-    const char* name = "None";
-    switch (selectedAuton) {
-        case 1: name = "Red Left";           break;
-        case 2: name = "Red Right";          break;
-        case 3: name = "Blue Left";          break;
-        case 4: name = "Blue Right";         break;
-        default: break;
-    }
+    const char* name = get_auton_name(selectedAuton);
 
     static char buf[32];
     std::snprintf(buf, sizeof(buf), "Auton: %s", name);
@@ -63,8 +67,61 @@ static void auton_btn_event_cb(lv_event_t* e) {
     if (code != LV_EVENT_CLICKED) return;
 
     int id = (int)(intptr_t)lv_event_get_user_data(e);
-    selectedAuton = id;
+
+    selectedAuton = id; 
+    autonCursor = id;
+
     update_title();
+}
+
+void auton_controller_task(void* param) {
+    (void)param;
+
+    bool lastUp = false;
+    bool lastDown = false;
+    bool lastX = false;
+
+    while (true) {
+        if (pros::competition::is_disabled() && !pros::competition::is_autonomous()) {
+            bool up = controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
+            bool down = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+            bool xBtn = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+
+            if (up && !lastUp) {
+                autonCursor++;
+                if (autonCursor > 4) autonCursor = 1;
+                controller.rumble(".");
+            }
+
+            if (down && !lastDown) {
+                autonCursor--;
+                if (autonCursor < 1) autonCursor = 4;
+                controller.rumble(".");
+            }
+
+            if (xBtn && !lastX) {
+                selectedAuton = autonCursor;
+                update_title();
+                controller.rumble("-."); 
+            }
+
+            lastUp = up;
+            lastDown = down;
+            lastX = xBtn;
+
+            const char* name = get_auton_name(autonCursor);
+
+            char buf[20];
+            if (autonCursor == selectedAuton) {
+                std::snprintf(buf, sizeof(buf), "> %s *", name);
+            } else {
+                std::snprintf(buf, sizeof(buf), "> %s", name);
+            }
+            controller.set_text(0, 0, buf);
+        }
+
+        pros::delay(50); // 20 Hz
+    }
 }
 
 extern "C" void build_base_screen() {
@@ -128,5 +185,6 @@ extern "C" void build_auton_selector() {
     make_auton_button("Blue Right", 4, LV_ALIGN_RIGHT_MID, -10, 0);
 
     selectedAuton = 1;
+    autonCursor = 1;
     update_title();
 }
