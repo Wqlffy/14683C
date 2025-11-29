@@ -29,10 +29,6 @@ static void update_title() {
         case 2: name = "Red Right";          break;
         case 3: name = "Blue Left";          break;
         case 4: name = "Blue Right";         break;
-        case 5: name = "Red Left AWP";       break;
-        case 6: name = "Red Right AWP";      break;
-        case 7: name = "Blue Left AWP";      break;
-        case 8: name = "Blue Right AWP";     break;
         default: break;
     }
 
@@ -130,12 +126,6 @@ extern "C" void build_auton_selector() {
 
     make_auton_button("Blue Left",       3, LV_ALIGN_LEFT_MID,   10, 0);
     make_auton_button("Blue Right",      4, LV_ALIGN_RIGHT_MID, -10, 0);
-
-    make_auton_button("Red Left AWP",    5, LV_ALIGN_LEFT_MID,   10, 60);
-    make_auton_button("Red Right AWP",   6, LV_ALIGN_RIGHT_MID, -10, 60);
-
-    make_auton_button("Blue Left AWP",   7, LV_ALIGN_LEFT_MID,   10, 120);
-    make_auton_button("Blue Right AWP",  8, LV_ALIGN_RIGHT_MID, -10, 120);
 
     selectedAuton = 1;
     update_title();

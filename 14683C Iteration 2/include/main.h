@@ -47,12 +47,6 @@ void auton_red_right();
 void auton_blue_left();
 void auton_blue_right();
 
-// AWP autons
-void auton_red_left_awp();
-void auton_red_right_awp();
-void auton_blue_left_awp();
-void auton_blue_right_awp();
-
 #endif
 
 #endif  // _PROS_MAIN_H_

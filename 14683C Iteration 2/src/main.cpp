@@ -16,6 +16,8 @@
 #include "pros/apix.h" // IWYU pragma: keep
 #include <cmath>
 #include <utility>
+#include "autonomous.hpp"
+
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -104,20 +106,12 @@ void competition_initialize() {
     lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
 }
 
-// get a path used for pure pursuit
-// this needs to be put outside a function
-// ASSET(example_txt); // '.' replaced with "_" to make c++ happy
-
 void autonomous() {
     switch (selectedAuton) {
         case 1: auton_red_left();        break;
         case 2: auton_red_right();       break;
         case 3: auton_blue_left();       break;
         case 4: auton_blue_right();      break;
-        case 5: auton_red_left_awp();    break;
-        case 6: auton_red_right_awp();   break;
-        case 7: auton_blue_left_awp();   break;
-        case 8: auton_blue_right_awp();  break;
         default:
             chassis.cancelAllMotions();
             break;
