@@ -3,14 +3,13 @@
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-// motor groups
 pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
 pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
-lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0.25);
+lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 1);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
