@@ -107,13 +107,13 @@ void auton_red_right() {
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
 
-    //scorer positive + indexer negative, wait 1.5 s
+    //intake negative + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(-12000);
+    scoring.move_voltage(-12000);
+    intake.move(-12000);
     wait_ms(1500);
     scoring.move_voltage(0);
-    indexer.move_voltage(0);
+    intake.move_voltage(0);
     
     chassis.waitUntilDone();
 
@@ -209,13 +209,13 @@ void auton_blue_right() {
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
 
-    //scorer positive + indexer negative, wait 1.5 s
+    //intake negative + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(-12000);
+    scoring.move_voltage(-12000);
+    intake.move(-12000);
     wait_ms(1500);
     scoring.move_voltage(0);
-    indexer.move_voltage(0);
+    intake.move_voltage(0);
     
     chassis.waitUntilDone();
 
