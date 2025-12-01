@@ -32,11 +32,11 @@ pros::adi::Pneumatics aligner('B', false);
 
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
-lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0);
+lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0.5);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
-                              18, // length between left and right wheels (middle of wheels)
+                              15.25, // length between left and right wheels (middle of wheels)
                               lemlib::Omniwheel::NEW_325, 
                               450,
                               2 // traction wheel is usually 2
@@ -77,6 +77,8 @@ extern const lv_image_dsc_t img_14683C;
 void build_auton_selector();
 void build_base_screen();
 extern void auton_controller_task(void* param);
+pros::Task autonSelTask(auton_controller_task, nullptr, "Auton Selector");
+
 
 void initialize() {
     chassis.calibrate();
@@ -87,8 +89,6 @@ void initialize() {
     scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
 
     build_base_screen();
-
-    pros::Task autonSelTask(auton_controller_task,nullptr,"Auton Selector");
 }
 
 void disabled() {}
@@ -133,12 +133,12 @@ static int deadbandInt(int val, int threshold) {
 }
 
 constexpr double PI = 3.141592653589793;
-constexpr double CD_TURN_NONLINEARITY = 0.6;
-constexpr double CD_NEG_INERTIA_SCALAR = 3.0;  // strength of 'flick' boost
-constexpr double CD_SENSITIVITY = 1.2;
-constexpr double DRIVE_DEADBAND = 0.05;
-constexpr double DRIVE_SLEW_UP = 0.04;
-constexpr double DRIVE_SLEW_DOWN = 0.08;
+constexpr double CD_TURN_NONLINEARITY = 0.5;
+constexpr double CD_NEG_INERTIA_SCALAR = 2.5;  // strength of 'flick' boost
+constexpr double CD_SENSITIVITY = 1.5;
+constexpr double DRIVE_DEADBAND = 0.03;
+constexpr double DRIVE_SLEW_UP = 0.05;
+constexpr double DRIVE_SLEW_DOWN = 0.10;
 
 static double quickStopAccumlator  = 0.0;
 static double negInertiaAccumlator = 0.0;
@@ -146,7 +146,7 @@ static double prevTurn = 0.0;
 static double prevThrottle = 0.0;
 
 static double turnRemapping(double iturn) {
-    double denominator = std::sin(PI / 2.0 * 0.6);
+    double denominator = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY);
     if (denominator == 0.0) return iturn; 
     double first = std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * iturn) / denominator;
     return std::sin(PI / 2.0 * CD_TURN_NONLINEARITY * first) / denominator;
@@ -209,8 +209,12 @@ static std::pair<double, double> cheesyArcade(double ithrottle, double iturn) {
         double negInertiaPower = (iturn - prevTurn) * CD_NEG_INERTIA_SCALAR;
         negInertiaAccumlator += negInertiaPower;
 
-        double angularCmd =
-            std::fabs(linearCmd) * (remappedTurn + negInertiaAccumlator) * CD_SENSITIVITY - quickStopAccumlator;
+        double speedFactor = std::fabs(linearCmd);
+        if (speedFactor < 0.5) {
+            speedFactor = 0.5;
+        }
+        
+        double angularCmd = speedFactor * (remappedTurn + negInertiaAccumlator) * CD_SENSITIVITY - quickStopAccumlator;
 
         forwardOut = linearCmd;
         turnOut = angularCmd;
@@ -237,8 +241,8 @@ void opcontrol() {
         int rawFwd = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-        rawFwd = deadbandInt(rawFwd, 8);
-        rawTurn = deadbandInt(rawTurn, 8);
+        rawFwd = deadbandInt(rawFwd, 5);
+        rawTurn = deadbandInt(rawTurn, 5);
 
         double ithrottle = rawFwd  / 127.0;
         double iturn = rawTurn / 127.0;
