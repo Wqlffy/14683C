@@ -21,24 +21,24 @@ lemlib::Drivetrain drivetrain(&leftMotors,
 
 lemlib::ControllerSettings linearController(10, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            0, // derivative gain (kD)
+                                            3, // derivative gain (kD)
                                             0, // anti windup
-                                            0.5, // small error range, in inches
-                                            250, // small error range timeout, in milliseconds
-                                            2, // large error range, in inches
-                                            500, // large error range timeout, in milliseconds
-                                            80 // maximum acceleration (slew)
+                                            0, // small error range, in inches
+                                            0, // small error range timeout, in milliseconds
+                                            0, // large error range, in inches
+                                            0, // large error range timeout, in milliseconds
+                                            0 // maximum acceleration (slew)
 );
 
 lemlib::ControllerSettings angularController(2,// proportional gain (kP)
                                              0, // integral gain (kI)
-                                             0, // derivative gain (kD)
+                                             10, // derivative gain (kD)
                                              0, // anti windup
-                                             0.5, // small error range, in degrees
-                                             250, // small error range timeout, in milliseconds
-                                             2, // large error range, in degrees
-                                             500, // large error range timeout, in milliseconds
-                                             80 // maximum acceleration (slew)
+                                             0, // small error range, in degrees
+                                             0, // small error range timeout, in milliseconds
+                                             0, // large error range, in degrees
+                                             0, // large error range timeout, in milliseconds
+                                             0 // maximum acceleration (slew)
 );
 
 lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
@@ -71,7 +71,7 @@ void competition_initialize() {}
 
 void autonomous() {
 	chassis.setPose(0, 0, 0);
-	chassis.moveToPoint(0,39.37,2000);
+	chassis.moveToPoint(0,39.37,99999);
 }
 
 void opcontrol() {
