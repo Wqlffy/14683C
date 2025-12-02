@@ -133,7 +133,7 @@ static int deadbandInt(int val, int threshold) {
 }
 
 constexpr double PI = 3.141592653589793;
-constexpr double CD_TURN_NONLINEARITY = 0.6;
+constexpr double CD_TURN_NONLINEARITY = 0.8;
 constexpr double CD_NEG_INERTIA_SCALAR = 3.0;  // strength of 'flick' boost
 constexpr double CD_SENSITIVITY = 1.2;
 constexpr double DRIVE_DEADBAND = 0.05;
@@ -270,6 +270,7 @@ void opcontrol() {
         else {
             if (r2) {
                 intake.move(127);
+                indexer.move(-127);
             }
             else if (r1) {
                 intake.move(-127);

@@ -27,15 +27,17 @@ void auton_red_left() {
     //start intake + tongue out
     chassis.waitUntil(43.952);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
     tongue.set_value(true);
 
     //wait 1.5 s
     chassis.waitUntil(59.951);
-    wait_ms(1500);
+    wait_ms(2500);
 
     // stop intake + tongue in, aligner out
     chassis.waitUntil(77.973);
-    intake.move_voltage(12000);
+    intake.move_voltage(0);
+    indexer.move_voltage(0);
     tongue.set_value(false);
     aligner.set_value(true);
 
@@ -43,7 +45,7 @@ void auton_red_left() {
     chassis.waitUntil(91.973);
     scoring.move_voltage(12000);
     indexer.move_voltage(12000);
-    wait_ms(1500);
+    wait_ms(2500);
 
     //scorer + indexer off intake on
     chassis.waitUntil(103.483);
@@ -51,16 +53,18 @@ void auton_red_left() {
     indexer.move_voltage(0);
     aligner.set_value(false);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
 
     //intake off
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
 
     //scorer positive + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
     scoring.move_voltage(12000);
     indexer.move_voltage(-12000);
-    wait_ms(1500);
+    wait_ms(2500);
     scoring.move_voltage(0);
     indexer.move_voltage(0);
     
@@ -78,15 +82,17 @@ void auton_red_right() {
     //start intake + tongue out
     chassis.waitUntil(43.952);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
     tongue.set_value(true);
 
     //wait 1.5 s
     chassis.waitUntil(59.951);
-    wait_ms(1500);
+    wait_ms(2500);
 
     // stop intake + tongue in, aligner out
     chassis.waitUntil(77.973);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
     tongue.set_value(false);
     aligner.set_value(true);
 
@@ -94,7 +100,7 @@ void auton_red_right() {
     chassis.waitUntil(91.973);
     scoring.move_voltage(12000);
     indexer.move_voltage(12000);
-    wait_ms(1500);
+    wait_ms(2500);
 
     //scorer + indexer off intake on
     chassis.waitUntil(103.483);
@@ -102,18 +108,22 @@ void auton_red_right() {
     indexer.move_voltage(0);
     aligner.set_value(false);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
 
     //intake off
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
 
     //intake negative + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
     scoring.move_voltage(-12000);
-    intake.move(-12000);
-    wait_ms(1500);
+    indexer.move_voltage(-12000);
+    intake.move_voltage(-12000);
+    wait_ms(2500);
     scoring.move_voltage(0);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
     
     chassis.waitUntilDone();
 
@@ -129,15 +139,17 @@ void auton_blue_left() {
     //start intake + tongue out
     chassis.waitUntil(43.952);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
     tongue.set_value(true);
 
     //wait 1.5 s
     chassis.waitUntil(59.951);
-    wait_ms(1500);
+    wait_ms(2500);
 
     // stop intake + tongue in, aligner out
     chassis.waitUntil(77.973);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
     tongue.set_value(false);
     aligner.set_value(true);
 
@@ -145,7 +157,7 @@ void auton_blue_left() {
     chassis.waitUntil(91.973);
     scoring.move_voltage(12000);
     indexer.move_voltage(12000);
-    wait_ms(1500);
+    wait_ms(2500);
 
     //scorer + indexer off intake on
     chassis.waitUntil(103.483);
@@ -153,16 +165,18 @@ void auton_blue_left() {
     indexer.move_voltage(0);
     aligner.set_value(false);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
 
     //intake off
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
 
     //scorer positive + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
     scoring.move_voltage(12000);
     indexer.move_voltage(-12000);
-    wait_ms(1500);
+    wait_ms(2500);
     scoring.move_voltage(0);
     indexer.move_voltage(0);
     
@@ -180,15 +194,17 @@ void auton_blue_right() {
     //start intake + tongue out
     chassis.waitUntil(43.952);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
     tongue.set_value(true);
 
     //wait 1.5 s
     chassis.waitUntil(59.951);
-    wait_ms(1500);
+    wait_ms(2500);
 
     // stop intake + tongue in, aligner out
     chassis.waitUntil(77.973);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
     tongue.set_value(false);
     aligner.set_value(true);
 
@@ -196,7 +212,7 @@ void auton_blue_right() {
     chassis.waitUntil(91.973);
     scoring.move_voltage(12000);
     indexer.move_voltage(12000);
-    wait_ms(1500);
+    wait_ms(2500);
 
     //scorer + indexer off intake on
     chassis.waitUntil(103.483);
@@ -204,18 +220,22 @@ void auton_blue_right() {
     indexer.move_voltage(0);
     aligner.set_value(false);
     intake.move_voltage(12000);
+    indexer.move_voltage(-12000);
 
     //intake off
     chassis.waitUntil(123.479);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
 
     //intake negative + indexer negative, wait 1.5 s
     chassis.waitUntil(134.026);
     scoring.move_voltage(-12000);
-    intake.move(-12000);
-    wait_ms(1500);
+    indexer.move_voltage(-12000);
+    intake.move_voltage(-12000);
+    wait_ms(2500);
     scoring.move_voltage(0);
     intake.move_voltage(0);
+    indexer.move_voltage(0);
     
     chassis.waitUntilDone();
 
