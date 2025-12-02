@@ -133,12 +133,12 @@ static int deadbandInt(int val, int threshold) {
 }
 
 constexpr double PI = 3.141592653589793;
-constexpr double CD_TURN_NONLINEARITY = 0.8;
-constexpr double CD_NEG_INERTIA_SCALAR = 3.0;  // strength of 'flick' boost
+constexpr double CD_TURN_NONLINEARITY = 0.65;
+constexpr double CD_NEG_INERTIA_SCALAR = 2.5;  // strength of 'flick' boost
 constexpr double CD_SENSITIVITY = 1.2;
-constexpr double DRIVE_DEADBAND = 0.05;
-constexpr double DRIVE_SLEW_UP = 0.04;
-constexpr double DRIVE_SLEW_DOWN = 0.08;
+constexpr double DRIVE_DEADBAND = 0.03;
+constexpr double DRIVE_SLEW_UP = 0.05;
+constexpr double DRIVE_SLEW_DOWN = 0.10;
 
 static double quickStopAccumlator  = 0.0;
 static double negInertiaAccumlator = 0.0;
