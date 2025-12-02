@@ -133,10 +133,10 @@ static int deadbandInt(int val, int threshold) {
 }
 
 constexpr double PI = 3.141592653589793;
-constexpr double CD_TURN_NONLINEARITY = 0.65;
+constexpr double CD_TURN_NONLINEARITY = 0.35;
 constexpr double CD_NEG_INERTIA_SCALAR = 2.5;  // strength of 'flick' boost
-constexpr double CD_SENSITIVITY = 1.2;
-constexpr double DRIVE_DEADBAND = 0.03;
+constexpr double CD_SENSITIVITY = 3.0;
+constexpr double DRIVE_DEADBAND = 0.02;
 constexpr double DRIVE_SLEW_UP = 0.05;
 constexpr double DRIVE_SLEW_DOWN = 0.10;
 
@@ -241,12 +241,16 @@ void opcontrol() {
         int rawFwd = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-        rawFwd = deadbandInt(rawFwd, 5);
-        rawTurn = deadbandInt(rawTurn, 5);
+        rawFwd = deadbandInt(rawFwd, 3);
+        rawTurn = deadbandInt(rawTurn, 3);
 
         double ithrottle = rawFwd  / 127.0;
         double iturn = rawTurn / 127.0;
 
+        iturn *= 1.21;
+
+        if (iturn >  1.0) iturn =  1.0;
+        if (iturn < -1.0) iturn = -1.0;
         auto driveCmd = cheesyArcade(ithrottle, iturn);
         double fwdCmd = driveCmd.first;
         double turnCmd = driveCmd.second;
