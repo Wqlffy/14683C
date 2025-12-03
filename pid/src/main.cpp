@@ -13,7 +13,7 @@ lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 1);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
-                              16, // length between left and right wheels (middle of wheels)
+                              12.4, // length between left and right wheels (middle of wheels)
                               lemlib::Omniwheel::NEW_325, 
                               450,
                               2 // traction wheel is usually 2

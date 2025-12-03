@@ -36,7 +36,7 @@ lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0.5);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
-                              15.25, // length between left and right wheels (middle of wheels)
+                              12.4, // length between left and right wheels (middle of wheels)
                               lemlib::Omniwheel::NEW_325, 
                               450,
                               2 // traction wheel is usually 2
@@ -247,7 +247,7 @@ void opcontrol() {
         double ithrottle = rawFwd  / 127.0;
         double iturn = rawTurn / 127.0;
 
-        iturn *= 1.21;
+        iturn *= 1.3;
 
         if (iturn >  1.0) iturn =  1.0;
         if (iturn < -1.0) iturn = -1.0;
