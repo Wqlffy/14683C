@@ -21,13 +21,13 @@ lemlib::Drivetrain drivetrain(&leftMotors,
 
 lemlib::ControllerSettings linearController(10, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            3, // derivative gain (kD)
+                                            22, // derivative gain (kD)
                                             0, // anti windup
-                                            0, // small error range, in inches
-                                            0, // small error range timeout, in milliseconds
-                                            0, // large error range, in inches
-                                            0, // large error range timeout, in milliseconds
-                                            0 // maximum acceleration (slew)
+                                            1, // small error range, in inches
+                                            250, // small error range timeout, in milliseconds
+                                            3, // large error range, in inches
+                                            600, // large error range timeout, in milliseconds
+                                            40 // maximum acceleration (slew)
 );
 
 lemlib::ControllerSettings angularController(2,// proportional gain (kP)
@@ -71,7 +71,7 @@ void competition_initialize() {}
 
 void autonomous() {
 	chassis.setPose(0, 0, 0);
-	chassis.moveToPoint(0,39.37,99999);
+	chassis.moveToPoint(0,15,99999);
 }
 
 void opcontrol() {
