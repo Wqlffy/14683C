@@ -9,13 +9,13 @@ namespace robot {
 struct Pose2D {
     double x;
     double y;
-    double theta;  // radians
+    double theta;
 };
 
 struct MotionDelta {
     double dx;
     double dy;
-    double dtheta;  // radians
+    double dtheta;
 };
 
 struct MotionNoise {
@@ -31,6 +31,21 @@ struct RangeObservation {
     double stdDev;
 };
 
+struct FieldWalls {
+    double minX;
+    double maxX;
+    double minY;
+    double maxY;
+};
+
+struct WallDistanceSensor {
+    double offsetX;     // inches, robot forward is +x
+    double offsetY;     // inches, robot left is +y
+    double yawOffset;   // radians, relative to robot forward
+    double maxRange;    // inches, sensor clipping distance
+    double stdDev;      // inches, measurement standard deviation
+};
+
 struct HeadingObservation {
     double heading;
     double stdDev;
@@ -43,6 +58,10 @@ class MonteCarloLocalizer {
     void predict(const MotionDelta& delta, const MotionNoise& noise);
     void applyHeadingObservation(const HeadingObservation& obs);
     void applyRangeObservation(const RangeObservation& obs);
+    double expectedWallDistance(const Pose2D& particlePose, const FieldWalls& walls,
+                                const WallDistanceSensor& sensor) const;
+    void applyWallDistanceObservation(double measuredDistance, const FieldWalls& walls,
+                                      const WallDistanceSensor& sensor);
     void resample();
     Pose2D getEstimate() const { return estimate_; }
 
@@ -61,4 +80,4 @@ class MonteCarloLocalizer {
     std::uniform_real_distribution<double> uniform_{0.0, 1.0};
 };
 
-}  // namespace robot
+}

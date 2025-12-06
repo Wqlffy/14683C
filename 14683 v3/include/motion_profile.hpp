@@ -36,4 +36,4 @@ class MotionProfileGenerator {
 std::vector<TrajectorySample> generateTrajectory(const std::vector<Waypoint>& waypoints,
                                                  double maxVel, double maxAccel, double dt);
 
-}  // namespace robot
+}

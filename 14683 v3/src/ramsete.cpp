@@ -18,7 +18,7 @@ double sinc(double x) {
     if (std::fabs(x) < 1e-6) return 1.0 - (x * x) / 6.0;
     return std::sin(x) / x;
 }
-}  // namespace
+}
 
 ChassisSpeeds RamseteController::calculate(const Pose2D& current, const Pose2D& reference,
                                            double referenceVel, double referenceOmega) const {
@@ -108,13 +108,18 @@ RamsetePathCommand::RamsetePathCommand(std::vector<TrajectorySample> trajectory,
                                        std::function<Pose2D()> odomGetter,
                                        std::function<void(double, double)> voltageOutput,
                                        double trackWidth, double wheelDiameter, double maxRpm,
-                                       MotionNoise noise, double headingStd)
+                                       MotionNoise noise, double headingStd, FieldWalls fieldWalls,
+                                       WallDistanceSensor wallSensor,
+                                       std::function<bool(double&)> wallDistanceGetter)
     : follower_(trackWidth, wheelDiameter, maxRpm),
       localizer_(localizer),
       odomGetter_(std::move(odomGetter)),
       output_(std::move(voltageOutput)),
       noise_(noise),
-      headingStd_(headingStd) {
+      headingStd_(headingStd),
+      fieldWalls_(fieldWalls),
+      wallSensor_(wallSensor),
+      wallDistanceGetter_(std::move(wallDistanceGetter)) {
     follower_.setTrajectory(std::move(trajectory));
 }
 
@@ -131,9 +136,19 @@ void RamsetePathCommand::execute() {
         lastOdom_ = odom;
     }
 
-    MotionDelta delta{odom.x - lastOdom_.x, odom.y - lastOdom_.y, wrap(odom.theta - lastOdom_.theta)};
+    const double dxField = odom.x - lastOdom_.x;
+    const double dyField = odom.y - lastOdom_.y;
+    const double prevHeading = lastOdom_.theta;
+    MotionDelta delta;
+    delta.dx = dxField * std::cos(prevHeading) + dyField * std::sin(prevHeading);
+    delta.dy = -dxField * std::sin(prevHeading) + dyField * std::cos(prevHeading);
+    delta.dtheta = wrap(odom.theta - lastOdom_.theta);
     localizer_.predict(delta, noise_);
     localizer_.applyHeadingObservation({odom.theta, headingStd_});
+    double wallDistance = 0.0;
+    if (wallDistanceGetter_ && wallDistanceGetter_(wallDistance)) {
+        localizer_.applyWallDistanceObservation(wallDistance, fieldWalls_, wallSensor_);
+    }
     localizer_.resample();
     lastOdom_ = odom;
 
@@ -155,4 +170,4 @@ void RamsetePathCommand::end(bool interrupted) {
     output_(0.0, 0.0);
 }
 
-}  // namespace robot
+}

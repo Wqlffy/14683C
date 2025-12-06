@@ -109,4 +109,4 @@ void ParallelRaceGroup::end(bool interrupted) {
     }
 }
 
-}  // namespace robot
+}

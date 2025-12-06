@@ -56,7 +56,10 @@ class RamsetePathCommand : public Command {
                        std::function<Pose2D()> odomGetter,
                        std::function<void(double, double)> voltageOutput, double trackWidth,
                        double wheelDiameter, double maxRpm,
-                       MotionNoise noise = {0.25, 0.25, 0.02}, double headingStd = 0.03);
+                       MotionNoise noise = {0.25, 0.25, 0.02}, double headingStd = 0.03,
+                       FieldWalls fieldWalls = {-70.5, 70.5, -70.5, 70.5},
+                       WallDistanceSensor wallSensor = {0.0, 0.0, 0.0, 72.0, 1.0},
+                       std::function<bool(double&)> wallDistanceGetter = {});
 
     void initialize() override;
     void execute() override;
@@ -70,9 +73,12 @@ class RamsetePathCommand : public Command {
     std::function<void(double, double)> output_;
     MotionNoise noise_;
     double headingStd_;
+    FieldWalls fieldWalls_;
+    WallDistanceSensor wallSensor_;
+    std::function<bool(double&)> wallDistanceGetter_;
     uint32_t startMs_{0};
     Pose2D lastOdom_{};
     bool seeded_{false};
 };
 
-}  // namespace robot
+}

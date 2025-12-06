@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numeric>
 
 namespace robot {
@@ -14,7 +15,7 @@ double gaussian(double error, double stdDev) {
     if (norm < 1e-9) return 1.0;
     return std::exp(-(error * error) / (2.0 * variance)) / norm;
 }
-}  // namespace
+}
 
 MonteCarloLocalizer::MonteCarloLocalizer(int particleCount, unsigned int seed) : rng_(seed) {
     particles_.reserve(std::max(1, particleCount));
@@ -68,6 +69,63 @@ void MonteCarloLocalizer::applyRangeObservation(const RangeObservation& obs) {
     normalize();
 }
 
+double MonteCarloLocalizer::expectedWallDistance(const Pose2D& particlePose, const FieldWalls& walls,
+                                                 const WallDistanceSensor& sensor) const {
+    const double cosPose = std::cos(particlePose.theta);
+    const double sinPose = std::sin(particlePose.theta);
+    const double sensorX = particlePose.x + sensor.offsetX * cosPose - sensor.offsetY * sinPose;
+    const double sensorY = particlePose.y + sensor.offsetX * sinPose + sensor.offsetY * cosPose;
+
+    const double beamHeading = wrap(particlePose.theta + sensor.yawOffset);
+    const double dirX = std::cos(beamHeading);
+    const double dirY = std::sin(beamHeading);
+
+    constexpr double EPS = 1e-9;
+    double tMin = std::numeric_limits<double>::infinity();
+
+    const auto checkHit = [&](double tCandidate, double hitCoord, double minBound, double maxBound) {
+        if (tCandidate <= 0.0 || !std::isfinite(tCandidate)) return;
+        if (hitCoord < minBound - EPS || hitCoord > maxBound + EPS) return;
+        tMin = std::min(tMin, tCandidate);
+    };
+
+    if (std::fabs(dirX) > EPS) {
+        double t = (walls.minX - sensorX) / dirX;
+        double yHit = sensorY + t * dirY;
+        checkHit(t, yHit, walls.minY, walls.maxY);
+
+        t = (walls.maxX - sensorX) / dirX;
+        yHit = sensorY + t * dirY;
+        checkHit(t, yHit, walls.minY, walls.maxY);
+    }
+
+    if (std::fabs(dirY) > EPS) {
+        double t = (walls.minY - sensorY) / dirY;
+        double xHit = sensorX + t * dirX;
+        checkHit(t, xHit, walls.minX, walls.maxX);
+
+        t = (walls.maxY - sensorY) / dirY;
+        xHit = sensorX + t * dirX;
+        checkHit(t, xHit, walls.minX, walls.maxX);
+    }
+
+    if (!std::isfinite(tMin)) return sensor.maxRange;
+    return std::min(tMin, sensor.maxRange);
+}
+
+void MonteCarloLocalizer::applyWallDistanceObservation(double measuredDistance, const FieldWalls& walls,
+                                                       const WallDistanceSensor& sensor) {
+    if (measuredDistance <= 0.0) return;
+    const double clipped = std::min(measuredDistance, sensor.maxRange);
+
+    for (auto& particle : particles_) {
+        const double predicted = expectedWallDistance(particle.pose, walls, sensor);
+        const double error = clipped - predicted;
+        particle.weight *= gaussian(error, sensor.stdDev);
+    }
+    normalize();
+}
+
 void MonteCarloLocalizer::normalize() {
     double weightSum = 0.0;
     for (const auto& particle : particles_) weightSum += particle.weight;
@@ -116,4 +174,4 @@ double MonteCarloLocalizer::wrap(double angle) const {
     return angle;
 }
 
-}  // namespace robot
+}

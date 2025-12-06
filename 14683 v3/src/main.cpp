@@ -14,9 +14,12 @@
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
+#include "pros/distance.hpp"
 #include "pros/apix.h" // IWYU pragma: keep
 #include <algorithm>
+#include <cstdint>
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <fstream>
 #include <sstream>
@@ -78,12 +81,27 @@ lemlib::ExpoDriveCurve steerCurve(10, 15, 1.02);
 
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
+constexpr bool ENABLE_WALL_DISTANCE = false;  // set true once the wall distance sensor is wired
+constexpr int WALL_DISTANCE_PORT = 8;         // smart port for the VEX Distance Sensor
+pros::Distance wallDistanceSensor(WALL_DISTANCE_PORT);
+
+constexpr robot::FieldWalls FIELD_WALLS = {-70.5, 70.5, -70.5, 70.5};  // 141\" square field
+constexpr robot::WallDistanceSensor WALL_DISTANCE_MODEL = {
+    6.0,   // offsetX: sensor sits 6\" forward of tracking center
+    0.0,   // offsetY: centered left/right
+    0.0,   // yawOffset: faces straight forward
+    72.0,  // maxRange: clamp far readings to 6 ft
+    1.0    // stdDev: tweak based on real sensor noise (inches)
+};
+
 constexpr double TRACK_WIDTH = 12.4;
 constexpr double WHEEL_DIAMETER = 3.25;
 constexpr double DRIVE_MAX_RPM = 450.0;
 constexpr double AUTO_START_X_IN = -46.362;
 constexpr double AUTO_START_Y_IN = 0.099;
 constexpr double AUTO_START_HEADING_DEG = 140.0;
+constexpr robot::MotionNoise AUTO_MOTION_NOISE = {0.25, 0.25, 0.02};
+constexpr double AUTO_HEADING_STD = 0.03;
 
 robot::CommandScheduler commandScheduler;
 robot::MonteCarloLocalizer localizer(400);
@@ -109,6 +127,17 @@ static robot::Pose2D toPose2D(const lemlib::Pose& pose) {
 
 static robot::Pose2D readOdomPose() {
     return toPose2D(chassis.getPose());
+}
+
+static bool readWallDistanceInches(double& outDistanceInches) {
+    if (!ENABLE_WALL_DISTANCE) return false;
+    const double mm = wallDistanceSensor.get();
+    if (mm <= 0.0) return false;
+    outDistanceInches = mm / 25.4;
+    if (outDistanceInches > WALL_DISTANCE_MODEL.maxRange) {
+        outDistanceInches = WALL_DISTANCE_MODEL.maxRange;
+    }
+    return true;
 }
 
 static void seedLocalizerFromChassis(double spreadX = 1.0, double spreadY = 1.0, double spreadTheta = 0.05) {
@@ -356,9 +385,23 @@ static void runRamseteAuto() {
     auto trajectory = robot::generateTrajectory(waypoints, maxVel, maxAccel, 0.02);
     if (trajectory.empty()) return;
 
+    std::function<bool(double&)> wallDistanceGetter = {};
+    if (ENABLE_WALL_DISTANCE) {
+        wallDistanceGetter = [](double& distanceInches) {
+            const double mm = wallDistanceSensor.get();
+            if (mm <= 0.0) return false;
+            distanceInches = mm / 25.4;
+            if (distanceInches > WALL_DISTANCE_MODEL.maxRange) {
+                distanceInches = WALL_DISTANCE_MODEL.maxRange;
+            }
+            return true;
+        };
+    }
+
     auto ramseteCommand = std::make_shared<robot::RamsetePathCommand>(
         trajectory, localizer, []() { return readOdomPose(); }, driveWithVoltage, TRACK_WIDTH,
-        WHEEL_DIAMETER, DRIVE_MAX_RPM);
+        WHEEL_DIAMETER, DRIVE_MAX_RPM, AUTO_MOTION_NOISE, AUTO_HEADING_STD, FIELD_WALLS,
+        WALL_DISTANCE_MODEL, wallDistanceGetter);
 
     auto intakeCycle = std::make_shared<robot::ParallelRaceGroup>(
         std::vector<std::shared_ptr<robot::Command>>{
@@ -512,10 +555,19 @@ void opcontrol() {
     robot::Pose2D teleopLastPose = readOdomPose();
     while (true) {
         auto odomPose = readOdomPose();
-        robot::MotionDelta delta{odomPose.x - teleopLastPose.x, odomPose.y - teleopLastPose.y,
-                                 wrapAngle(odomPose.theta - teleopLastPose.theta)};
+        const double dxField = odomPose.x - teleopLastPose.x;
+        const double dyField = odomPose.y - teleopLastPose.y;
+        const double prevHeading = teleopLastPose.theta;
+        robot::MotionDelta delta;
+        delta.dx = dxField * std::cos(prevHeading) + dyField * std::sin(prevHeading);
+        delta.dy = -dxField * std::sin(prevHeading) + dyField * std::cos(prevHeading);
+        delta.dtheta = wrapAngle(odomPose.theta - teleopLastPose.theta);
         localizer.predict(delta, {0.1, 0.1, degToRad(0.4)});
         localizer.applyHeadingObservation({odomPose.theta, degToRad(1.0)});
+        double wallDistance = 0.0;
+        if (readWallDistanceInches(wallDistance)) {
+            localizer.applyWallDistanceObservation(wallDistance, FIELD_WALLS, WALL_DISTANCE_MODEL);
+        }
         localizer.resample();
         teleopLastPose = odomPose;
 

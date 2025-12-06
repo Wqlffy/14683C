@@ -19,26 +19,26 @@ lemlib::Drivetrain drivetrain(&leftMotors,
                               2 // traction wheel is usually 2
 );
 
-lemlib::ControllerSettings linearController(10, // proportional gain (kP)
+lemlib::ControllerSettings linearController(5.5, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            22, // derivative gain (kD)
-                                            0, // anti windup
-                                            1, // small error range, in inches
+                                            18, // derivative gain (kD)
+                                            10, // anti windup
+                                            1.0, // small error range, in inches
                                             250, // small error range timeout, in milliseconds
-                                            3, // large error range, in inches
-                                            600, // large error range timeout, in milliseconds
-                                            40 // maximum acceleration (slew)
+                                            3.0, // large error range, in inches
+                                            2500, // large error range timeout, in milliseconds
+                                            75 // maximum acceleration (slew)
 );
 
-lemlib::ControllerSettings angularController(2,// proportional gain (kP)
+lemlib::ControllerSettings angularController(3.8,// proportional gain (kP)
                                              0, // integral gain (kI)
-                                             10, // derivative gain (kD)
-                                             0, // anti windup
-                                             0, // small error range, in degrees
-                                             0, // small error range timeout, in milliseconds
-                                             0, // large error range, in degrees
-                                             0, // large error range timeout, in milliseconds
-                                             0 // maximum acceleration (slew)
+                                             22, // derivative gain (kD)
+                                             5 , // anti windup
+                                             2.0, // small error range, in degrees
+                                             220, // small error range timeout, in milliseconds
+                                             7.0, // large error range, in degrees
+                                             2500, // large error range timeout, in milliseconds
+                                             55 // maximum acceleration (slew)
 );
 
 lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
