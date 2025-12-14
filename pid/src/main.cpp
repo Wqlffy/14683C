@@ -1,5 +1,6 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/distance.hpp"
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -10,6 +11,7 @@ pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEn
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 1);
+pros::Distance distanceSensor(10);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
@@ -59,6 +61,7 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+            pros::lcd::print(3, "Distance: %f", distanceSensor.get_distance()); // distance sensor
             lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
             pros::delay(50);
         }
