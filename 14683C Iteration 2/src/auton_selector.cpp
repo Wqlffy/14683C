@@ -1,6 +1,7 @@
 #include "liblvgl/display/lv_display.h"
 #include "liblvgl/font/lv_font.h"
 #include "liblvgl/lv_conf_internal.h"
+#include "liblvgl/misc/lv_area.h"
 #include "liblvgl/widgets/button/lv_button.h"
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep

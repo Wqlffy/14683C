@@ -305,6 +305,14 @@ void opcontrol() {
             }
         }
 
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
+            intake.move(127);
+            tongue.set_value(true);
+            pros::delay(500);
+            tongue.set_value(false);
+            intake.move(0);
+        }
+
         if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
             flagStateTongue = !flagStateTongue;
             if (flagStateTongue) 

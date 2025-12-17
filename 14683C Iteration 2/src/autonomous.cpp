@@ -2,18 +2,17 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "pros/distance.hpp"
+#include "pros/motor_group.hpp"
+#include "pros/motors.hpp"
 #include <sys/_intsup.h>
-
-ASSET(red_left_txt);
-ASSET(red_right_txt);
-ASSET(blue_left_txt);
-ASSET(blue_right_txt);
 
 extern lemlib::Chassis chassis;
 
 extern pros::Motor intake;
 extern pros::Motor indexer;
 extern pros::Motor scoring;
+extern pros::MotorGroup leftMotors;
+extern pros::MotorGroup rightMotors;
 extern pros::adi::Pneumatics tongue;
 extern pros::adi::Pneumatics alignerLeft;
 extern pros::adi::Pneumatics alignerRight;
@@ -50,53 +49,101 @@ void driveToWallDistance(double targetIn, int timeoutMs = 800) {
     chassis.tank(0, 0);
 }
 
-static void wait_ms(int ms) {
-    pros::delay(ms);
-}
+
+void cdrift(float lV, float rV, int timeout, bool cst = true){ (cst == true) ? (leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST), rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST)) : (leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE), rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE)); leftMotors.move(lV); rightMotors.move(rV); pros::delay(timeout); leftMotors.brake(); rightMotors.brake(); } void cdrift(float lV, float rV){ leftMotors.move(lV); rightMotors.move(rV); }
 
 void auton_red_left() {
     chassis.setPose(0, 0, 0);
-    chassis.moveToPoint(0, 51, 1500, {.maxSpeed = 80});
-    chassis.turnToHeading(-92, 750); 
+    chassis.moveToPoint(0, 46, 1200, {.maxSpeed = 70});
+    chassis.turnToHeading(86, 800); 
     intake.move(-127);
     indexer.move(-127);
     tongue.set_value(true);
     
     pros::delay(800);
 
-    chassis.moveToPoint(-12, 51, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
-    chassis.moveToPoint(-1, 51, 1000, {.forwards = false});
-    pros::delay(500);
-    chassis.moveToPoint(-12, 51, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
+    chassis.moveToPoint(15, 46, 1200, {.maxSpeed = 100});
+    pros::delay(1000);
+    cdrift(-70, -70, 500, true);
+    // chassis.moveToPoint(15, 46, 1200, {.maxSpeed = 127});
+    // pros::delay(1000);
+    cdrift(100, 100, 1000, true);
 
-    chassis.turnToHeading(-90.5, 500);
-    chassis.moveToPoint(0, 51, 2000, {.forwards = false, .maxSpeed = 65});
-    pros::delay(500);
+    chassis.turnToHeading(86, 400);
+    chassis.moveToPoint(-21, 47, 1000, {.forwards = false, .maxSpeed = 80});
     tongue.set_value(false);
     intake.move(0);
-
-    chassis.moveToPoint(22.5, 52, 1500, {.forwards = false, .maxSpeed = 65});
+    pros::delay(600);
     scoring.move(127);
+    intake.move(-127);
     indexer.move(-127);
-    pros::delay(4000);
+    pros::delay(2000);
     scoring.move(0);
+    intake.move(0);
     indexer.move(0);
 
 
-    chassis.turnToHeading(-220, 750);
-    // chassis.moveToPoint(13.5, 38, 1500, {.maxSpeed = 65});
-    chassis.moveToPoint(24, 22, 1500, {.maxSpeed = 80});
+    chassis.turnToHeading(220, 800);
+    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
+    intake.move(-127);
+    indexer.move(-127);
+    pros::delay(2000);
+    intake.move(0);
+    indexer.move(0);
+
+    chassis.moveToPoint(-40,4, 1000, {.maxSpeed = 55});
+    pros::delay(490);
+    scoring.move(-127);
+    indexer.move(-127);
+    intake.move(127);
+    pros::delay(1200);
+    scoring.move(0);
+    indexer.move(0);
+    intake.move(0);
+}
+
+void auton_red_right() {
+    chassis.setPose(0, 0, 0);
+    chassis.moveToPoint(0, 46, 1200, {.maxSpeed = 70});
+    chassis.turnToHeading(-90, 800); 
+    intake.move(-127);
+    indexer.move(-127);
+    tongue.set_value(true);
+    
+    pros::delay(800);
+
+    chassis.moveToPoint(-15, 46, 800, {.maxSpeed = 100});
+    pros::delay(1000);
+    cdrift(-70, -70, 500, true);
+    // chassis.moveToPoint(-15, 46, 800, {.maxSpeed = 127});
+    // pros::delay(1000);
+    cdrift(100, 100, 1000, true);
+
+    chassis.turnToHeading(-90, 400);
+    chassis.moveToPoint(-21, 47, 1000, {.forwards = false, .maxSpeed = 80});
+    tongue.set_value(false);
+    intake.move(0);
+    pros::delay(600);
+    scoring.move(127);
+    intake.move(-127);
+    indexer.move(-127);
+    pros::delay(1400);
+    scoring.move(0);
+    intake.move(0);
+    indexer.move(0);
+
+
+    chassis.turnToHeading(-220, 800);
+    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
     intake.move(0);
     indexer.move(0);
     
-    chassis.turnToHeading(-398, 750);
-    chassis.moveToPoint(41,5, 2000, {.forwards = false, .maxSpeed = 55});
-    pros::delay(500);
+    chassis.turnToHeading(-400, 600);
+    chassis.moveToPoint(41,5, 2000, {.forwards = false, .maxSpeed = 90});
+    pros::delay(400);
     scoring.move(127);
     indexer.move(127);
     pros::delay(2000);
@@ -104,101 +151,48 @@ void auton_red_left() {
     indexer.move(0);
 }
 
-void auton_red_right() {
-    chassis.setPose(0, 0, 0);
-    chassis.moveToPoint(0, 51, 1500, {.maxSpeed = 80});
-    chassis.turnToHeading(90, 750); 
-    intake.move(-127);
-    indexer.move(-127);
-    tongue.set_value(true);
-    
-    pros::delay(800);
-
-    chassis.moveToPoint(12, 50, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
-    chassis.moveToPoint(1, 50, 1000, {.forwards = false});
-    pros::delay(500);
-    chassis.moveToPoint(12, 50, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
-
-    chassis.turnToHeading(90.5, 500);
-    chassis.moveToPoint(0, 51, 2000, {.forwards = false, .maxSpeed = 65});
-    pros::delay(500);
-    tongue.set_value(false);
-    intake.move(0);
-
-    chassis.moveToPoint(-22.5, 52, 1500, {.forwards = false, .maxSpeed = 65});
-    scoring.move(127);
-    indexer.move(-127);
-    pros::delay(4000);
-    scoring.move(0);
-    indexer.move(0);
-
-
-    chassis.turnToHeading(227, 750);
-    chassis.moveToPoint(-17, 33.6, 1500, {.maxSpeed = 65});
-    chassis.moveToPoint(-26, 22, 1500, {.maxSpeed = 80});
-    intake.move(-127);
-    indexer.move(-127);
-    pros::delay(2000);
-    intake.move(0);
-    indexer.move(0);
-    
-    chassis.moveToPoint(-36,9, 2000, {.maxSpeed = 55});
-    pros::delay(500);
-    scoring.move(-127);
-    indexer.move(-127);
-    intake.move(127);
-    pros::delay(2000);
-    scoring.move(0);
-    indexer.move(0);
-    intake.move(0);
-}
-
-
 void auton_blue_left() {
     chassis.setPose(0, 0, 0);
-    chassis.moveToPoint(0, 51, 1500, {.maxSpeed = 80});
-    chassis.turnToHeading(-92, 750); 
+    chassis.moveToPoint(0, 46, 1200, {.maxSpeed = 70});
+    chassis.turnToHeading(-90, 800); 
     intake.move(-127);
     indexer.move(-127);
     tongue.set_value(true);
     
     pros::delay(800);
 
-    chassis.moveToPoint(-12, 51, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
-    chassis.moveToPoint(-1, 51, 1000, {.forwards = false});
-    pros::delay(500);
-    chassis.moveToPoint(-12, 51, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
+    chassis.moveToPoint(-15, 46, 800, {.maxSpeed = 100});
+    pros::delay(1000);
+    cdrift(-70, -70, 500, true);
+    // chassis.moveToPoint(-15, 46, 800, {.maxSpeed = 127});
+    // pros::delay(1000);
+    cdrift(100, 100, 1000, true);
 
-    chassis.turnToHeading(-90.5, 500);
-    chassis.moveToPoint(0, 51, 2000, {.forwards = false, .maxSpeed = 65});
-    pros::delay(500);
+    chassis.turnToHeading(-90, 400);
+    chassis.moveToPoint(-21, 47, 1000, {.forwards = false, .maxSpeed = 80});
     tongue.set_value(false);
     intake.move(0);
-
-    chassis.moveToPoint(22.5, 52, 1500, {.forwards = false, .maxSpeed = 65});
+    pros::delay(600);
     scoring.move(127);
+    intake.move(-127);
     indexer.move(-127);
-    pros::delay(4000);
+    pros::delay(1400);
     scoring.move(0);
+    intake.move(0);
     indexer.move(0);
 
 
-    chassis.turnToHeading(-220, 750);
-    // chassis.moveToPoint(13.5, 38, 1500, {.maxSpeed = 65});
-    chassis.moveToPoint(24, 22, 1500, {.maxSpeed = 80});
+    chassis.turnToHeading(-220, 800);
+    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
     intake.move(0);
     indexer.move(0);
     
-    chassis.turnToHeading(-398, 750);
-    chassis.moveToPoint(41,5, 2000, {.forwards = false, .maxSpeed = 55});
-    pros::delay(500);
+    chassis.turnToHeading(-400, 600);
+    chassis.moveToPoint(41,5, 2000, {.forwards = false, .maxSpeed = 90});
+    pros::delay(400);
     scoring.move(127);
     indexer.move(127);
     pros::delay(2000);
@@ -208,53 +202,50 @@ void auton_blue_left() {
 
 void auton_blue_right() {
     chassis.setPose(0, 0, 0);
-    chassis.moveToPoint(0, 51, 1500, {.maxSpeed = 80});
-    chassis.turnToHeading(90, 750); 
+    chassis.moveToPoint(0, 46, 1200, {.maxSpeed = 70});
+    chassis.turnToHeading(86, 800); 
     intake.move(-127);
     indexer.move(-127);
     tongue.set_value(true);
     
     pros::delay(800);
 
-    chassis.moveToPoint(12, 50, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
-    chassis.moveToPoint(1, 50, 1000, {.forwards = false});
-    pros::delay(500);
-    chassis.moveToPoint(12, 50, 1500, {.maxSpeed = 127});
-    pros::delay(1500);
+    chassis.moveToPoint(15, 46, 1200, {.maxSpeed = 100});
+    pros::delay(1000);
+    cdrift(-70, -70, 500, true);
+    // chassis.moveToPoint(15, 46, 1200, {.maxSpeed = 127});
+    // pros::delay(1000);
+    cdrift(100, 100, 1000, true);
 
-    chassis.turnToHeading(90.5, 500);
-    chassis.moveToPoint(0, 51, 2000, {.forwards = false, .maxSpeed = 65});
-    pros::delay(500);
+    chassis.turnToHeading(86, 400);
+    chassis.moveToPoint(-21, 47, 1000, {.forwards = false, .maxSpeed = 80});
     tongue.set_value(false);
     intake.move(0);
-
-    chassis.moveToPoint(-22.5, 52, 1500, {.forwards = false, .maxSpeed = 65});
+    pros::delay(600);
     scoring.move(127);
+    intake.move(-127);
     indexer.move(-127);
-    pros::delay(4000);
+    pros::delay(2000);
     scoring.move(0);
+    intake.move(0);
     indexer.move(0);
 
 
-    chassis.turnToHeading(227, 750);
-    chassis.moveToPoint(-17, 33.6, 1500, {.maxSpeed = 65});
-    chassis.moveToPoint(-26, 22, 1500, {.maxSpeed = 80});
+    chassis.turnToHeading(220, 800);
+    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
     intake.move(0);
     indexer.move(0);
-    
-    chassis.moveToPoint(-36,9, 2000, {.maxSpeed = 55});
-    pros::delay(500);
+
+    chassis.moveToPoint(-40,4, 1000, {.maxSpeed = 55});
+    pros::delay(490);
     scoring.move(-127);
     indexer.move(-127);
     intake.move(127);
-    pros::delay(2000);
+    pros::delay(1200);
     scoring.move(0);
     indexer.move(0);
     intake.move(0);
 }
-
-
