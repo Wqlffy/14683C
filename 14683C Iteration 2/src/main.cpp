@@ -83,7 +83,6 @@ void build_base_screen();
 extern void auton_controller_task(void* param);
 pros::Task* autonSelTask = nullptr;
 
-
 void initialize() {
     chassis.calibrate();
 

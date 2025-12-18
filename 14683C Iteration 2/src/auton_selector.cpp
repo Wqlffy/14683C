@@ -164,7 +164,6 @@ extern "C" void build_auton_selector() {
         lv_obj_set_size(btn, 140, 60);
         lv_obj_align(btn, align, x_ofs, y_ofs);
 
-        // Only handle real clicks
         lv_obj_add_event_cb(
             btn,
             auton_btn_event_cb,
