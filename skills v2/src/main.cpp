@@ -13,6 +13,7 @@
 #include "pros/apix.h" // IWYU pragma: keep
 #include <cmath>
 #include <utility>
+#include "autonomous.cpp"
 
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -29,6 +30,8 @@ pros::adi::Pneumatics aligner('B', false);
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0);
+pros::Distance wallSide(10);
+
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
@@ -40,24 +43,24 @@ lemlib::Drivetrain drivetrain(&leftMotors,
 
 lemlib::ControllerSettings linearController(10, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            0, // derivative gain (kD)
+                                            22, // derivative gain (kD)
                                             0, // anti windup
-                                            0, // small error range, in inches
-                                            0, // small error range timeout, in milliseconds
-                                            0, // large error range, in inches
-                                            0, // large error range timeout, in milliseconds
-                                            0 // maximum acceleration (slew)
+                                            1, // small error range, in inches
+                                            250, // small error range timeout, in milliseconds
+                                            3, // large error range, in inches
+                                            600, // large error range timeout, in milliseconds
+                                            70 // maximum acceleration (slew)
 );
 
-lemlib::ControllerSettings angularController(2,// proportional gain (kP)
-                                             0, // integral gain (kI)
-                                             0, // derivative gain (kD)
-                                             0, // anti windup
-                                             0, // small error range, in degrees
-                                             0, // small error range timeout, in milliseconds
-                                             0, // large error range, in degrees
-                                             0, // large error range timeout, in milliseconds
-                                             0 // maximum acceleration (slew)
+lemlib::ControllerSettings angularController(1.5,   // proportional gain (kP)
+                                            0,   // integral gain (kI)
+                                            10,  // derivative gain (kD)
+                                            3,   // anti windup
+                                            1,   // small error range, in degrees
+                                            100, // small error range timeout, in milliseconds
+                                            3,   // large error range, in degrees
+                                            500, // large error range timeout, in milliseconds
+                                            0    // maximum acceleration (slew), 0 = no limit
 );
 
 lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
@@ -86,121 +89,8 @@ void competition_initialize() {
     }
 }
 
-ASSET(skills_txt)
 void autonomous() {
-    chassis.setPose(-46.362, 0.099, 86.645);
-    chassis.follow(skills_txt, 14, 45000, true, true);
-
-    chassis.waitUntil(53.971);
-    intake.move_voltage(12000);
-    tongue.set_value(true);
-
-    // at 83.459: wait 3 seconds
-    chassis.waitUntil(83.459);
-    pros::delay(3000);
-
-    // at 93.459: stop intake, pull tongue
-    chassis.waitUntil(93.459);
-    intake.move_voltage(0);
-    tongue.set_value(false);
-
-    // at 216.017:
-    //   push aligner, start scoring + indexer,
-    //   wait 4 seconds, then stop scoring/indexer, pull aligner
-    chassis.waitUntil(216.017);
-    aligner.set_value(true);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(12000);
-    pros::delay(4000);
-    scoring.move_voltage(0);
-    indexer.move_voltage(0);
-    aligner.set_value(false);
-
-    // at 234.017: push tongue, start intake
-    chassis.waitUntil(234.017);
-    tongue.set_value(true);
-    intake.move_voltage(12000);
-
-    // at 250.017: wait 3 seconds
-    chassis.waitUntil(250.017);
-    pros::delay(3000);
-
-    // at 265.345: pull tongue, stop intake
-    chassis.waitUntil(265.345);
-    tongue.set_value(false);
-    intake.move_voltage(0);
-
-    // at 281.475:
-    //   push aligner, start scoring + indexer,
-    //   wait 4 seconds, then stop scoring/indexer, pull aligner
-    chassis.waitUntil(281.475);
-    aligner.set_value(true);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(12000);
-    pros::delay(4000);
-    scoring.move_voltage(0);
-    indexer.move_voltage(0);
-    aligner.set_value(false);
-
-    // at 383.032: push tongue, start intake
-    chassis.waitUntil(383.032);
-    tongue.set_value(true);
-    intake.move_voltage(12000);
-
-    // at 397.738: wait 3 seconds
-    chassis.waitUntil(397.738);
-    pros::delay(3000);
-
-    // at 411.712: pull tongue, stop intake
-    chassis.waitUntil(411.712);
-    tongue.set_value(false);
-    intake.move_voltage(0);
-
-    // at 524.94:
-    //   push aligner, start scoring + indexer,
-    //   wait 4 seconds, then stop scoring/indexer, pull aligner
-    chassis.waitUntil(524.94);
-    aligner.set_value(true);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(12000);
-    pros::delay(4000);
-    scoring.move_voltage(0);
-    indexer.move_voltage(0);
-    aligner.set_value(false);
-
-    // at 545.366: push tongue, start intake
-    chassis.waitUntil(545.366);
-    tongue.set_value(true);
-    intake.move_voltage(12000);
-
-    // at 556.826: wait 3 seconds
-    chassis.waitUntil(556.826);
-    pros::delay(3000);
-
-    // at 566.826: pull tongue, stop intake
-    chassis.waitUntil(566.826);
-    tongue.set_value(false);
-    intake.move_voltage(0);
-
-    // at 588.826:
-    //   push aligner, start scoring + indexer,
-    //   wait 4 seconds, then stop scoring/indexer, pull aligner
-    chassis.waitUntil(588.826);
-    aligner.set_value(true);
-    scoring.move_voltage(12000);
-    indexer.move_voltage(12000);
-    pros::delay(4000);
-    scoring.move_voltage(0);
-    indexer.move_voltage(0);
-    aligner.set_value(false);
-
-    chassis.waitUntilDone();
-
-    intake.move_voltage(0);
-    indexer.move_voltage(0);
-    scoring.move_voltage(0);
-    tongue.set_value(false);
-    aligner.set_value(false);
+    skillsRun()
 }
 
 static int deadbandInt(int val, int threshold) {
@@ -352,6 +242,7 @@ void opcontrol() {
             }
             else if (r1) {
                 intake.move(-127);
+                scoring.move(-127);
             }
             else {
                 intake.move(0);
@@ -371,20 +262,20 @@ void opcontrol() {
             }
         }
 
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
+            intake.move(127);
+            tongue.set_value(true);
+            pros::delay(500);
+            tongue.set_value(false);
+            intake.move(0);
+        }
+
         if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
             flagStateTongue = !flagStateTongue;
             if (flagStateTongue) 
                 tongue.extend();
             else 
                 tongue.retract();
-        }
-
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            flagStateAligner = !flagStateAligner;
-            if (flagStateAligner) 
-                aligner.extend();
-            else 
-                aligner.retract();
         }
 
         pros::delay(10);
