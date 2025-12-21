@@ -1,9 +1,11 @@
 #include "liblvgl/display/lv_display.h"
 #include "liblvgl/font/lv_font.h"
 #include "liblvgl/lv_conf_internal.h"
+#include "liblvgl/misc/lv_area.h"
 #include "liblvgl/widgets/button/lv_button.h"
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "pros/rtos.hpp"
 #include <cstdio>
 #include <cmath>
 #include <cstdint>
@@ -63,66 +65,63 @@ static void pose_timer_cb(lv_timer_t* timer) {
 }
 
 static void auton_btn_event_cb(lv_event_t* e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code != LV_EVENT_CLICKED) return;
-
     int id = (int)(intptr_t)lv_event_get_user_data(e);
 
-    selectedAuton = id; 
+    selectedAuton = id;
     autonCursor = id;
 
     update_title();
+    controller.rumble("-.");
 }
 
 void auton_controller_task(void* param) {
     (void)param;
 
-    bool lastUp = false;
-    bool lastDown = false;
-    bool lastX = false;
+    bool lastUp = false, lastDown = false, lastX = false;
 
     while (true) {
-        if (pros::competition::is_disabled() && !pros::competition::is_autonomous()) {
-            bool up = controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
-            bool down = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
-            bool xBtn = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+        const char* name = get_auton_name(autonCursor);
+        char buf[20];
+        std::snprintf(buf, sizeof(buf),
+                      (autonCursor == selectedAuton) ? "> %s *" : "> %s",
+                      name);
+        controller.set_text(0, 0, buf);
 
-            if (up && !lastUp) {
-                autonCursor++;
-                if (autonCursor > 4) autonCursor = 1;
-                controller.rumble(".");
-            }
-
-            if (down && !lastDown) {
-                autonCursor--;
-                if (autonCursor < 1) autonCursor = 4;
-                controller.rumble(".");
-            }
-
-            if (xBtn && !lastX) {
-                selectedAuton = autonCursor;
-                update_title();
-                controller.rumble("-."); 
-            }
-
-            lastUp = up;
-            lastDown = down;
-            lastX = xBtn;
-
-            const char* name = get_auton_name(autonCursor);
-
-            char buf[20];
-            if (autonCursor == selectedAuton) {
-                std::snprintf(buf, sizeof(buf), "> %s *", name);
-            } else {
-                std::snprintf(buf, sizeof(buf), "> %s", name);
-            }
-            controller.set_text(0, 0, buf);
+        if (!pros::competition::is_disabled()) {
+            pros::delay(50);
+            continue;
         }
 
-        pros::delay(50); // 20 Hz
+        bool up   = controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
+        bool down = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+        bool xBtn = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+
+        if (up && !lastUp) {
+            autonCursor = (autonCursor % 4) + 1;
+            controller.rumble(".");
+        }
+
+        if (down && !lastDown) {
+            autonCursor--;
+            if (autonCursor < 1) autonCursor = 4;
+            controller.rumble(".");
+        }
+
+        if (xBtn && !lastX) {
+            selectedAuton = autonCursor;
+            update_title();
+            controller.rumble("-.");
+        }
+
+        lastUp = up;
+        lastDown = down;
+        lastX = xBtn;
+
+        pros::delay(50);
     }
 }
+
+
 
 extern "C" void build_base_screen() {
     lv_obj_clean(lv_screen_active());
@@ -154,7 +153,6 @@ extern "C" void build_base_screen() {
         poseTimerStarted = true;
     }
 
-    selectedAuton = 0;
     update_title();
 }
 
@@ -169,22 +167,22 @@ extern "C" void build_auton_selector() {
         lv_obj_add_event_cb(
             btn,
             auton_btn_event_cb,
-            LV_EVENT_ALL,
+            LV_EVENT_CLICKED,
             (void*)(intptr_t)id
         );
 
         lv_obj_t* lbl = lv_label_create(btn);
         lv_label_set_text(lbl, text);
         lv_obj_center(lbl);
+
+        // If you tap the label text, bubble the event up to the button
+        lv_obj_add_flag(lbl, LV_OBJ_FLAG_EVENT_BUBBLE);
     };
 
     make_auton_button("Red Left", 1, LV_ALIGN_LEFT_MID,   10, -60);
     make_auton_button("Red Right", 2, LV_ALIGN_RIGHT_MID, -10, -60);
-
     make_auton_button("Blue Left", 3, LV_ALIGN_LEFT_MID,   10, 0);
     make_auton_button("Blue Right", 4, LV_ALIGN_RIGHT_MID, -10, 0);
 
-    selectedAuton = 1;
-    autonCursor = 1;
     update_title();
 }

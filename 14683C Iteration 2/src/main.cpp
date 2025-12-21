@@ -6,6 +6,7 @@
 #include "liblvgl/misc/lv_types.h"
 #include "liblvgl/widgets/image/lv_image.h"
 #include "pros/adi.hpp"
+#include "pros/distance.hpp"
 #include "pros/llemu.hpp" // IWYU pragma: keep
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
@@ -28,11 +29,13 @@ pros::Motor intake(20, pros::MotorGearset::blue, pros::MotorEncoderUnits::degree
 pros::Motor indexer(-18, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
 pros::Motor scoring(19, pros::MotorGearset::green, pros::MotorEncoderUnits::degrees);
 pros::adi::Pneumatics tongue('A', false); 
-pros::adi::Pneumatics aligner('B', false); 
+pros::adi::Pneumatics alignerLeft('C', false);
+pros::adi::Pneumatics alignerRight('E', false); 
 
 pros::Imu imu(9);
 pros::Rotation verticalEnc(11); 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 0.5);
+pros::Distance horizontaldistance(10);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors,
@@ -44,25 +47,26 @@ lemlib::Drivetrain drivetrain(&leftMotors,
 
 lemlib::ControllerSettings linearController(10, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            0, // derivative gain (kD)
+                                            22, // derivative gain (kD)
                                             0, // anti windup
-                                            0, // small error range, in inches
-                                            0, // small error range timeout, in milliseconds
-                                            0, // large error range, in inches
-                                            0, // large error range timeout, in milliseconds
-                                            0 // maximum acceleration (slew)
+                                            1, // small error range, in inches
+                                            250, // small error range timeout, in milliseconds
+                                            3, // large error range, in inches
+                                            600, // large error range timeout, in milliseconds
+                                            70 // maximum acceleration (slew)
 );
 
-lemlib::ControllerSettings angularController(2,// proportional gain (kP)
-                                             0, // integral gain (kI)
-                                             0, // derivative gain (kD)
-                                             0, // anti windup
-                                             0, // small error range, in degrees
-                                             0, // small error range timeout, in milliseconds
-                                             0, // large error range, in degrees
-                                             0, // large error range timeout, in milliseconds
-                                             0 // maximum acceleration (slew)
+lemlib::ControllerSettings angularController(1.5,   // proportional gain (kP)
+                                            0,   // integral gain (kI)
+                                            10,  // derivative gain (kD)
+                                            3,   // anti windup
+                                            1,   // small error range, in degrees
+                                            100, // small error range timeout, in milliseconds
+                                            3,   // large error range, in degrees
+                                            500, // large error range timeout, in milliseconds
+                                            0    // maximum acceleration (slew), 0 = no limit
 );
+
 
 lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
 
@@ -77,11 +81,11 @@ extern const lv_image_dsc_t img_14683C;
 void build_auton_selector();
 void build_base_screen();
 extern void auton_controller_task(void* param);
-pros::Task autonSelTask(auton_controller_task, nullptr, "Auton Selector");
-
+pros::Task* autonSelTask = nullptr;
 
 void initialize() {
     chassis.calibrate();
+
     leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
@@ -89,6 +93,10 @@ void initialize() {
     scoring.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
 
     build_base_screen();
+    
+    if (autonSelTask == nullptr) {
+        autonSelTask = new pros::Task(auton_controller_task, nullptr, "Auton Selector");
+    }
 }
 
 void disabled() {}
@@ -96,7 +104,7 @@ void disabled() {}
 void competition_initialize() {
     build_base_screen();
     build_auton_selector();
-    
+
     while (pros::competition::is_disabled()) {
         pros::delay(20);
     }
@@ -107,10 +115,9 @@ void competition_initialize() {
     lv_image_set_src(bg, &img_14683C);
     lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
 }
-
 extern int selectedAuton;
 void autonomous() {
-    switch (selectedAuton) {
+   switch (selectedAuton) {
         case 1:
             auton_red_left();
             break;
@@ -241,16 +248,12 @@ void opcontrol() {
         int rawFwd = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rawTurn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
 
-        rawFwd = deadbandInt(rawFwd, 3);
-        rawTurn = deadbandInt(rawTurn, 3);
+        rawFwd = deadbandInt(rawFwd, 5);
+        rawTurn = deadbandInt(rawTurn, 5);
 
         double ithrottle = rawFwd  / 127.0;
         double iturn = rawTurn / 127.0;
 
-        iturn *= 1.3;
-
-        if (iturn >  1.0) iturn =  1.0;
-        if (iturn < -1.0) iturn = -1.0;
         auto driveCmd = cheesyArcade(ithrottle, iturn);
         double fwdCmd = driveCmd.first;
         double turnCmd = driveCmd.second;
@@ -278,10 +281,10 @@ void opcontrol() {
         else {
             if (r2) {
                 intake.move(127);
-                indexer.move(-127);
             }
             else if (r1) {
                 intake.move(-127);
+                scoring.move(-127);
             }
             else {
                 intake.move(0);
@@ -301,20 +304,20 @@ void opcontrol() {
             }
         }
 
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
+            intake.move(127);
+            tongue.set_value(true);
+            pros::delay(500);
+            tongue.set_value(false);
+            intake.move(0);
+        }
+
         if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
             flagStateTongue = !flagStateTongue;
             if (flagStateTongue) 
                 tongue.extend();
             else 
                 tongue.retract();
-        }
-
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)) {
-            flagStateAligner = !flagStateAligner;
-            if (flagStateAligner) 
-                aligner.extend();
-            else 
-                aligner.retract();
         }
 
         pros::delay(10);
