@@ -1,5 +1,6 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
+#include "lemlib/chassis/trackingWheel.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -103,8 +104,8 @@ lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_275, -5.
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors, 
                               10, 
-                              lemlib::Omniwheel::NEW_4, 
-                              360, 
+                              lemlib::Omniwheel::NEW_325, 
+                              450, 
                               2 
 );
 
@@ -165,8 +166,12 @@ void initialize() {
         }
     });
 }
-void disabled() {}
-void competition_initialize() {}
+void disabled() {
+
+}
+void competition_initialize() {
+    
+}
 void autonomous() {
 }
 
