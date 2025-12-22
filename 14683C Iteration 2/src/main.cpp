@@ -304,7 +304,7 @@ void opcontrol() {
             }
         }
 
-        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
+        if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
             intake.move(127);
             tongue.set_value(true);
             pros::delay(500);

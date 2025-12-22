@@ -63,14 +63,14 @@ void auton_red_left() {
     pros::delay(800);
 
     chassis.moveToPoint(-15, 45, 800, {.maxSpeed = 100});
-    pros::delay(1000);
-    cdrift(-70, -70, 600, true);
+    pros::delay(600);
+    cdrift(-50, -50, 700, true);
     // chassis.moveToPoint(3, 45, 800, {.maxSpeed = 127});
     // pros::delay(1000);
-    cdrift(120, 120, 1000, true);
+    cdrift(110, 110, 1000, true);
 
     chassis.turnToHeading(-87, 400);
-    chassis.moveToPoint(-21, 45, 1000, {.forwards = false, .maxSpeed = 80});
+    chassis.moveToPoint(21, 45, 1000, {.forwards = false, .maxSpeed = 80});
     tongue.set_value(false);
     intake.move(0);
     pros::delay(600);
@@ -84,7 +84,7 @@ void auton_red_left() {
 
 
     chassis.turnToHeading(220, 800);
-    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
+    chassis.moveToPoint(31, 20, 1200, {.maxSpeed = 50});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
@@ -92,7 +92,7 @@ void auton_red_left() {
     indexer.move(0);
     
     chassis.turnToHeading(400, 600);
-    chassis.moveToPoint(41,5, 2000, {.forwards = false, .maxSpeed = 90});
+    chassis.moveToPoint(38,5, 2000, {.forwards = false, .maxSpeed = 60});
     pros::delay(400);
     scoring.move(127);
     indexer.move(127);
@@ -113,10 +113,10 @@ void auton_red_right() {
 
     chassis.moveToPoint(15, 45, 1200, {.maxSpeed = 100});
     pros::delay(1000);
-    cdrift(-70, -70, 600, true);
+    cdrift(-40, -40, 600, true);
     // chassis.moveToPoint(-3, 45, 1200, {.forwards=false, .maxSpeed = 127});
     // pros::delay(1000);
-    cdrift(120, 120, 1000, true);
+    cdrift(110, 110, 1000, true);
 
     chassis.turnToHeading(87, 400);
     chassis.moveToPoint(-21, 46, 1000, {.forwards = false, .maxSpeed = 80});
@@ -132,29 +132,29 @@ void auton_red_right() {
     indexer.move(0);
 
 
-    chassis.turnToHeading(220, 800);
-    chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
-    intake.move(-127);
-    indexer.move(-127);
-    pros::delay(1000);
-    intake.move(0);
-    indexer.move(0);
+    // chassis.turnToHeading(220, 800);
+    // chassis.moveToPoint(-31, 20, 1200, {.maxSpeed = 65});
+    // intake.move(-127);
+    // indexer.move(-127);
+    // pros::delay(1000);
+    // intake.move(0);
+    // indexer.move(0);
 
-    chassis.moveToPoint(-40,4, 1000, {.maxSpeed = 55});
-    pros::delay(400);
-    scoring.move(-127);
-    indexer.move(-127);
-    intake.move(127);
-    pros::delay(1200);
-    scoring.move(0);
-    indexer.move(0);
-    intake.move(0);
+    // chassis.moveToPoint(-40,4, 1000, {.maxSpeed = 55});
+    // pros::delay(400);
+    // scoring.move(-127);
+    // indexer.move(-127);
+    // intake.move(127);
+    // pros::delay(1200);
+    // scoring.move(0);
+    // indexer.move(0);
+    // intake.move(0);
 }
 
 void auton_blue_left() {
     chassis.setPose(0, 0, 0);
     chassis.moveToPoint(0, 45, 1200, {.maxSpeed = 70});
-    chassis.turnToHeading(87, 800); 
+    chassis.turnToHeading(-87, 800); 
     intake.move(-127);
     indexer.move(-127);
     tongue.set_value(true);
@@ -163,13 +163,14 @@ void auton_blue_left() {
 
     chassis.moveToPoint(-15, 45, 800, {.maxSpeed = 100});
     pros::delay(1000);
-    cdrift(-70, -70, 600, true);
+    cdrift(-40, -40, 600, true);
     // chassis.moveToPoint(3, 45, 800, {.maxSpeed = 127});
     pros::delay(1000);
-    cdrift(100, 100, 1000, true);
+    cdrift(110, 110, 1000, true);
 
-    chassis.turnToHeading(-86, 400);
+    chassis.turnToHeading(-87, 400);
     chassis.moveToPoint(23, 46, 1000, {.forwards = false, .maxSpeed = 80});
+    pros::delay(200);
     tongue.set_value(false);
     intake.move(0);
     pros::delay(600);
@@ -182,8 +183,8 @@ void auton_blue_left() {
     indexer.move(0);
 
 
-    chassis.turnToHeading(-225, 800);
-    chassis.moveToPoint(18, 33, 1200, {.maxSpeed = 65});
+    chassis.turnToHeading(-230, 800);
+    chassis.moveToPoint(24, 30, 1200, {.maxSpeed = 65});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
@@ -191,7 +192,7 @@ void auton_blue_left() {
     indexer.move(0);
     
     chassis.turnToHeading(-400, 600);
-    chassis.moveToPoint(39,5, 2000, {.forwards = false, .maxSpeed = 90});
+    chassis.moveToPoint(47,12, 2000, {.forwards = false, .maxSpeed = 90});
     pros::delay(400);
     scoring.move(127);
     indexer.move(127);
@@ -201,6 +202,7 @@ void auton_blue_left() {
 }
 
 void auton_blue_right() {
+    // cdrift(30,30,300);
     chassis.setPose(0, 0, 0);
     chassis.moveToPoint(0, 45, 1200, {.maxSpeed = 70});
     chassis.turnToHeading(86, 800); 
@@ -212,13 +214,14 @@ void auton_blue_right() {
 
     chassis.moveToPoint(10, 45, 1200, {.maxSpeed = 100});
     pros::delay(1000);
-    cdrift(-70, -70, 600, true);
+    cdrift(-40, -40, 600, true);
     // chassis.moveToPoint(15, 46, 1200, {.maxSpeed = 127});
     // pros::delay(1000);
     cdrift(100, 100, 1000, true);
 
     chassis.turnToHeading(86, 400);
     chassis.moveToPoint(-21, 45, 1000, {.forwards = false, .maxSpeed = 80});
+    pros::delay(200);
     tongue.set_value(false);
     intake.move(0);
     pros::delay(600);
@@ -230,9 +233,8 @@ void auton_blue_right() {
     intake.move(0);
     indexer.move(0);
 
-
     chassis.turnToHeading(226, 800);
-    chassis.moveToPoint(-31, 18, 1200, {.maxSpeed = 65});
+    chassis.moveToPoint(-31, 18, 1200, {.maxSpeed = 55});
     intake.move(-127);
     indexer.move(-127);
     pros::delay(2000);
