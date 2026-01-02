@@ -1,0 +1,30 @@
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(-48.240000, -8.160000, 179.654849);
+
+chassis.moveToPoint(-48.0, -48.0, 1021, {.forwards = true});
+pros::delay(200);
+chassis.turnToHeading(270.0, 406);
+chassis.moveToPoint(-60.0, -48.0, 527, {.forwards = true});
+pros::delay(1000);
+chassis.turnToHeading(269.497418, 168);
+chassis.moveToPoint(-32.64, -47.76, 807, {.forwards = false});
+pros::delay(1500);
+chassis.turnToHeading(19.983107, 449);
+chassis.moveToPoint(-24.0, -24.0, 888, {.forwards = true});
+pros::delay(200);
+chassis.turnToHeading(0.0, 191);
+chassis.moveToPoint(-24.0, 24.0, 1384, {.forwards = true});
+pros::delay(500);
+chassis.turnToHeading(315.0, 287);
+chassis.moveToPoint(-13.92, 13.92, 781, {.forwards = false});
+pros::delay(750);
+chassis.moveToPoint(-48.0, 48.0, 1165, {.forwards = true});
+pros::delay(100);
+chassis.turnToHeading(270.0, 287);
+chassis.moveToPoint(-58.8, 48.0, 500, {.forwards = true});
+pros::delay(1000);
+chassis.turnToHeading(269.483836, 168);
+chassis.moveToPoint(-32.16, 48.24, 918, {.forwards = false});
+
+// Estimated total time: 13.33 s
