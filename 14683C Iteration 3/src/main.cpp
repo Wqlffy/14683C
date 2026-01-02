@@ -1,6 +1,9 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
+#include "auton_selector.hpp"
+#include "pros/motors.h"
+#include "ui/ui_root.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -151,21 +154,20 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 void initialize() {
-    pros::lcd::initialize();
+    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+    
     chassis.calibrate(); 
 
-    pros::Task screenTask([&]() {
+    ui_root::init();
+    static pros::Task ui_task([] {
         while (true) {
-            pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
-            pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
-            pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            // log position telemetry
-            lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
-            // delay to save resources
-            pros::delay(50);
+            ui_root::update_fast();
+            pros::delay(100);
         }
     });
-}
+            pros::delay(50);
+        }
 void disabled() {
 
 }
@@ -173,6 +175,7 @@ void competition_initialize() {
     
 }
 void autonomous() {
+    run_selected_auton();
 }
 
 
