@@ -56,7 +56,7 @@ inline const lv_font_t* font_small() {
 }
 
 inline void apply_screen(lv_obj_t* obj) {
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(obj, color_bg(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
@@ -67,7 +67,7 @@ inline void apply_screen(lv_obj_t* obj) {
 }
 
 inline void apply_panel(lv_obj_t* obj) {
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(obj, color_panel(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(obj, kBorder, LV_PART_MAIN);
@@ -80,15 +80,19 @@ inline void apply_panel(lv_obj_t* obj) {
 }
 
 inline void apply_button(lv_obj_t* obj) {
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(obj, color_btn(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(obj, color_btn_pressed(),
-                              LV_PART_MAIN | LV_STATE_PRESSED);
-    lv_obj_set_style_bg_color(obj, color_btn_selected(),
-                              LV_PART_MAIN | LV_STATE_CHECKED);
-    lv_obj_set_style_bg_color(obj, color_btn_selected(),
-                              LV_PART_MAIN | LV_STATE_CHECKED | LV_STATE_PRESSED);
+    const auto pressed_sel = static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+                             static_cast<lv_style_selector_t>(LV_STATE_PRESSED);
+    const auto checked_sel = static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+                             static_cast<lv_style_selector_t>(LV_STATE_CHECKED);
+    const auto checked_pressed_sel =
+        static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+        static_cast<lv_style_selector_t>(LV_STATE_CHECKED | LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(obj, color_btn_pressed(), pressed_sel);
+    lv_obj_set_style_bg_color(obj, color_btn_selected(), checked_sel);
+    lv_obj_set_style_bg_color(obj, color_btn_selected(), checked_pressed_sel);
     lv_obj_set_style_border_width(obj, kBorder, LV_PART_MAIN);
     lv_obj_set_style_border_color(obj, color_border(), LV_PART_MAIN);
     lv_obj_set_style_radius(obj, kRadius, LV_PART_MAIN);
@@ -100,7 +104,7 @@ inline void set_button_selected(lv_obj_t* obj, bool selected) {
     if (selected) {
         lv_obj_add_state(obj, LV_STATE_CHECKED);
     } else {
-        lv_obj_clear_state(obj, LV_STATE_CHECKED);
+        lv_obj_remove_state(obj, LV_STATE_CHECKED);
     }
 }
 
@@ -113,4 +117,4 @@ inline lv_obj_t* make_label(lv_obj_t* parent, const char* text,
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
     return label;
 }
-}  // namespace ui_theme
+}
