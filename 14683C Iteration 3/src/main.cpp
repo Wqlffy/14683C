@@ -2,6 +2,8 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
+#include "robot_config.hpp"
+#include "pros/distance.hpp"
 #include "pros/motors.h"
 #include "ui/ui_root.hpp"
 
@@ -95,11 +97,6 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
 
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
-
-pros::MotorGroup leftMotors({-1, -2, -3}, pros::MotorGearset::blue); 
-pros::MotorGroup rightMotors({20, 19, 18}, pros::MotorGearset::blue);
-
-pros::Imu imu(10);
 
 pros::Rotation horizontalEnc(20);
 lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
