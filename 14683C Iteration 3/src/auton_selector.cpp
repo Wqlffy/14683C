@@ -1,6 +1,28 @@
 #include "auton_selector.hpp"
 
-volatile AutonId g_selected_auton = AutonId::Red43Left;
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+namespace {
+constexpr const char* kStatePath = "/usd/auton_state.txt";
+constexpr const char* kStateMagic = "AUTON_STATE_V1";
+
+AutonId default_auton() {
+    return AutonId::Skills;
+}
+
+AutonLockState default_lock() {
+    return AutonLockState::Unlocked;
+}
+
+bool is_valid_auton(int value) {
+    return value >= 0 && value < static_cast<int>(AUTON_COUNT);
+}
+}  // namespace
+
+volatile AutonId g_selected_auton = AutonId::Skills;
+volatile AutonLockState g_auton_lock = AutonLockState::Unlocked;
 
 // TODO: Replace descriptions and img_src when your routes/assets are finalized.
 const AutonInfo AUTONS[AUTON_COUNT] = {
@@ -41,7 +63,68 @@ const AutonInfo* get_auton_info(AutonId id) {
     return nullptr;
 }
 
+void save_auton_state() {
+    FILE* file = std::fopen(kStatePath, "w");
+    if (!file) {
+        return;
+    }
+    std::fprintf(file, "%s\n%d\n%d\n", kStateMagic,
+                 static_cast<int>(g_selected_auton),
+                 static_cast<int>(g_auton_lock));
+    std::fclose(file);
+}
+
+void load_auton_state() {
+    g_selected_auton = default_auton();
+    g_auton_lock = default_lock();
+
+    FILE* file = std::fopen(kStatePath, "r");
+    if (!file) {
+        return;
+    }
+
+    char magic[32] = {};
+    if (!std::fgets(magic, sizeof(magic), file)) {
+        std::fclose(file);
+        return;
+    }
+    magic[strcspn(magic, "\r\n")] = '\0';
+    if (std::strcmp(magic, kStateMagic) != 0) {
+        std::fclose(file);
+        return;
+    }
+
+    char line[32] = {};
+    if (!std::fgets(line, sizeof(line), file)) {
+        std::fclose(file);
+        return;
+    }
+    const int auton_val = std::strtol(line, nullptr, 10);
+    if (!std::fgets(line, sizeof(line), file)) {
+        std::fclose(file);
+        return;
+    }
+    const int lock_val = std::strtol(line, nullptr, 10);
+    std::fclose(file);
+
+    if (!is_valid_auton(auton_val)) {
+        g_selected_auton = default_auton();
+    } else {
+        g_selected_auton = static_cast<AutonId>(auton_val);
+    }
+
+    g_auton_lock =
+        (lock_val == static_cast<int>(AutonLockState::Locked))
+            ? AutonLockState::Locked
+            : AutonLockState::Unlocked;
+}
+
 void run_selected_auton() {
+    if (g_auton_lock != AutonLockState::Locked) {
+        std::printf("WARN: auton called while unlocked, skipping.\n");
+        return;
+    }
+
     switch (g_selected_auton) {
         case AutonId::Red43Left:
             // TODO: call 4-3 red left auton.
