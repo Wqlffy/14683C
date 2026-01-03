@@ -12,7 +12,15 @@ lv_obj_t* s_timer_label = nullptr;
 lv_obj_t* s_detail_title = nullptr;
 lv_obj_t* s_detail_desc = nullptr;
 lv_obj_t* s_detail_img = nullptr;
+lv_obj_t* s_status_label = nullptr;
+lv_obj_t* s_lock_btn = nullptr;
+lv_obj_t* s_lock_label = nullptr;
 lv_obj_t* s_buttons[AUTON_COUNT] = {};
+
+constexpr uint32_t kStatusUnlocked = 0xe0b84b;
+constexpr uint32_t kStatusLocked = 0x4fd681;
+constexpr uint32_t kLockBtnUnlocked = 0xb8862d;
+constexpr uint32_t kLockBtnLocked = 0x2f7d4c;
 
 void set_transparent(lv_obj_t* obj) {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
@@ -20,6 +28,8 @@ void set_transparent(lv_obj_t* obj) {
     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
 }
+
+void update_lock_ui();
 
 void on_auton_event(lv_event_t* e) {
     const auto* info =
@@ -30,11 +40,69 @@ void on_auton_event(lv_event_t* e) {
 
     const lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
-        set_detail(info->id);
+        if (g_auton_lock == AutonLockState::Unlocked) {
+            set_detail(info->id);
+        }
     } else if (code == LV_EVENT_LONG_PRESSED) {
-        g_selected_auton = info->id;
-        set_selected(info->id);
-        set_detail(info->id);
+        if (g_auton_lock == AutonLockState::Unlocked) {
+            g_selected_auton = info->id;
+            save_auton_state();
+            set_selected(info->id);
+            set_detail(info->id);
+            update_lock_ui();
+        }
+    }
+}
+
+void on_lock_event(lv_event_t* e) {
+    if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
+        return;
+    }
+    if (g_auton_lock == AutonLockState::Locked) {
+        g_auton_lock = AutonLockState::Unlocked;
+    } else {
+        g_auton_lock = AutonLockState::Locked;
+    }
+    save_auton_state();
+    update_lock_ui();
+}
+
+void update_lock_ui() {
+    const bool locked = (g_auton_lock == AutonLockState::Locked);
+    if (s_status_label) {
+        lv_label_set_text(s_status_label,
+                          locked ? "STATUS: LOCKED" : "STATUS: UNLOCKED");
+        lv_obj_set_style_text_color(
+            s_status_label,
+            locked ? lv_color_hex(kStatusLocked)
+                   : lv_color_hex(kStatusUnlocked),
+            LV_PART_MAIN);
+    }
+    if (s_lock_btn && s_lock_label) {
+        lv_label_set_text(s_lock_label,
+                          locked ? "UNLOCK AUTON" : "LOCK AUTON");
+        lv_obj_set_style_bg_color(
+            s_lock_btn,
+            locked ? lv_color_hex(kLockBtnLocked)
+                   : lv_color_hex(kLockBtnUnlocked),
+            LV_PART_MAIN);
+        lv_obj_set_style_bg_color(
+            s_lock_btn,
+            locked ? lv_color_hex(kLockBtnLocked)
+                   : lv_color_hex(kLockBtnUnlocked),
+            static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+                static_cast<lv_style_selector_t>(LV_STATE_PRESSED));
+    }
+    for (size_t i = 0; i < AUTON_COUNT; ++i) {
+        if (!s_buttons[i]) {
+            continue;
+        }
+        const bool selected = AUTONS[i].id == g_selected_auton;
+        if (locked && !selected) {
+            lv_obj_add_state(s_buttons[i], LV_STATE_DISABLED);
+        } else {
+            lv_obj_clear_state(s_buttons[i], LV_STATE_DISABLED);
+        }
     }
 }
 
@@ -67,6 +135,7 @@ lv_obj_t* make_header_pill(lv_obj_t* parent, const char* text) {
 }
 
 lv_obj_t* build(lv_obj_t* parent) {
+    load_auton_state();
     s_root = lv_obj_create(parent);
     lv_obj_set_size(s_root, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(s_root, LV_FLEX_FLOW_COLUMN);
@@ -190,12 +259,27 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_label_set_long_mode(s_detail_desc, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(s_detail_desc, LV_PCT(100));
 
+    s_status_label = ui_theme::make_label(detail, "STATUS: UNLOCKED",
+                                          ui_theme::color_text(),
+                                          ui_theme::font_body());
+
+    s_lock_btn = lv_button_create(detail);
+    ui_theme::apply_button(s_lock_btn);
+    lv_obj_set_width(s_lock_btn, LV_PCT(100));
+    lv_obj_set_height(s_lock_btn, 40);
+    lv_obj_add_event_cb(s_lock_btn, on_lock_event, LV_EVENT_CLICKED, nullptr);
+    s_lock_label =
+        ui_theme::make_label(s_lock_btn, "LOCK AUTON", ui_theme::color_text(),
+                             ui_theme::font_body());
+    lv_obj_center(s_lock_label);
+
     s_detail_img = lv_image_create(detail);
     lv_obj_set_size(s_detail_img, 180, 120);
     lv_obj_add_flag(s_detail_img, LV_OBJ_FLAG_HIDDEN);
 
     set_selected(g_selected_auton);
     set_detail(g_selected_auton);
+    update_lock_ui();
     return s_root;
 }
 
@@ -232,5 +316,6 @@ void update() {
     const int minutes = total_sec / 60;
     const int seconds = total_sec % 60;
     lv_label_set_text_fmt(s_timer_label, "%d:%02d", minutes, seconds);
+    update_lock_ui();
 }
-}
+}  // namespace ui_autons
