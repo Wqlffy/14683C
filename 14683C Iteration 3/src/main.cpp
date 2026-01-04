@@ -2,8 +2,9 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
+#include "auton_recovery.hpp"
 #include "robot_config.hpp"
-#include "pros/distance.hpp"
+#include "pros/distance.hpp" // IWYU pragma: keep
 #include "pros/motors.h"
 #include "ui/ui_root.hpp"
 
@@ -154,7 +155,8 @@ void initialize() {
     leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
     rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
     
-    chassis.calibrate(); 
+    chassis.calibrate();
+    load_auton_state();
 
     ui_root::init();
     static pros::Task ui_task([] {
@@ -173,6 +175,16 @@ void competition_initialize() {
 }
 void autonomous() {
     run_selected_auton();
+    /*
+    // Example usage (inside a contact-heavy auton segment):
+    // AutonRecovery::recoverAfterContact(300, 0.0);
+    //
+    // Example wrapper with monitoring:
+    // AutonRecovery::runSegmentWithRecovery(
+    //     [&]() { chassis.moveToPoint(24, 0, 1500); },
+    //     [&]() { return 0.6; },
+    //     300, 0.0, true, 2, 20);
+    */
 }
 
 
