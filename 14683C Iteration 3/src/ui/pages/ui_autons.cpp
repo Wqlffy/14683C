@@ -101,7 +101,7 @@ void update_lock_ui() {
         if (locked && !selected) {
             lv_obj_add_state(s_buttons[i], LV_STATE_DISABLED);
         } else {
-            lv_obj_clear_state(s_buttons[i], LV_STATE_DISABLED);
+            lv_obj_remove_state(s_buttons[i], LV_STATE_DISABLED);
         }
     }
 }

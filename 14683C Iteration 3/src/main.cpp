@@ -13,15 +13,18 @@
 #include <utility>
 
 constexpr double PI = 3.14159265358979323846;
-constexpr double DRIVE_DEADBAND = 0.03;
-constexpr double DRIVE_SLEW = 0.10;
-constexpr double CD_TURN_NONLINEARITY = 0.45;
-constexpr double CD_NEG_INERTIA_SCALAR = 2.3;
-constexpr double CD_SENSITIVITY = 1.25;
+constexpr double DRIVE_DEADBAND = 0.035;
+constexpr double DRIVE_SLEW = 0.14;
+constexpr double CD_TURN_NONLINEARITY = 0.52;
+constexpr double CD_NEG_INERTIA_SCALAR = 2.5;
+constexpr double CD_SENSITIVITY = 1.45;
 constexpr double JOYSTICK_SCALE = 127.0;
+constexpr double TIP_THRESHOLD = 0.14; // 0.12–0.18 range
+constexpr double TIP_CREEP_SCALE = 0.35;   // 0.25–0.45 typical
 
-constexpr double MIN_TURN_GAIN = 0.85;
-constexpr double TURN_IN_PLACE_GAIN = 1.15;
+
+constexpr double MIN_TURN_GAIN = 0.93;
+constexpr double TURN_IN_PLACE_GAIN = 1.18;
 
 static double _clamp(double value, double minValue, double maxValue) {
     return std::max(minValue, std::min(maxValue, value));
@@ -53,12 +56,12 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
     bool turnInPlace = false;
     double linearCmd = ithrottle;
 
-    if (std::abs(ithrottle) < DRIVE_DEADBAND && std::abs(iturn) > DRIVE_DEADBAND) {
-        linearCmd = 0.0;
+    if (std::abs(ithrottle) < TIP_THRESHOLD && std::abs(iturn) > DRIVE_DEADBAND) {
         turnInPlace = true;
-    } else if (ithrottle - prevThrottle > DRIVE_SLEW) {
+    }
+    if (linearCmd - prevThrottle > DRIVE_SLEW) {
         linearCmd = prevThrottle + DRIVE_SLEW;
-    } else if (ithrottle - prevThrottle < -(DRIVE_SLEW * 2)) {
+    } else if (linearCmd - prevThrottle < -(DRIVE_SLEW * 2)) {
         linearCmd = prevThrottle - (DRIVE_SLEW * 2);
     }
 
@@ -67,16 +70,25 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
     double left = 0.0, right = 0.0;
 
     if (turnInPlace) {
-        left  = remappedTurn * TURN_IN_PLACE_GAIN;
-        right = -remappedTurn * TURN_IN_PLACE_GAIN;
+        linearCmd *= TIP_CREEP_SCALE;
+    }
+    if (turnInPlace) {
+        double angularCmd =
+            (remappedTurn + negInertiaAccumlator)
+            * CD_SENSITIVITY
+            * TURN_IN_PLACE_GAIN;
+
+        left  = linearCmd + angularCmd;
+        right = linearCmd - angularCmd;
+
     } else {
         double negInertiaPower = (iturn - prevTurn) * CD_NEG_INERTIA_SCALAR;
         negInertiaAccumlator += negInertiaPower;
 
         double speed = std::abs(linearCmd);
 
-        // Keep strong turning even at speed (this is the "uncap" fix)
-        double turnGain = 1.0 - (1.0 - MIN_TURN_GAIN) * speed; // 1.0 -> 0.85
+        double turnGain =
+            1.0 - (1.0 - MIN_TURN_GAIN) * speed;
 
         double angularCmd =
             turnGain * (remappedTurn + negInertiaAccumlator) * CD_SENSITIVITY

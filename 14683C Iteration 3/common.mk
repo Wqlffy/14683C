@@ -160,6 +160,14 @@ GETALLOBJ=$(sort $(call ASMOBJ,$1) $(call COBJ,$1) $(call CXXOBJ,$1))
 
 ARCHIVE_TEXT_LIST=$(subst $(SPACE),$(COMMA),$(notdir $(basename $(LIBRARIES))))
 
+# Rebuild stale zero-length objects to avoid link-time undefined references.
+ZERO_OBJS := $(shell find $(BINDIR) -name '*.o' -size 0 2>/dev/null)
+ifneq ($(strip $(ZERO_OBJS)),)
+.PHONY: force_rebuild_zero_objs
+force_rebuild_zero_objs:
+$(ZERO_OBJS): force_rebuild_zero_objs
+endif
+
 LDTIMEOBJ:=$(BINDIR)/_pros_ld_timestamp.o
 
 MONOLITH_BIN:=$(BINDIR)/monolith.bin
