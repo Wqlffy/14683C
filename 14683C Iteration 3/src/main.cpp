@@ -3,6 +3,8 @@
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
 #include "auton_recovery.hpp"
+#include "pros/adi.hpp"
+#include "pros/misc.h"
 #include "robot_config.hpp"
 #include "pros/distance.hpp" // IWYU pragma: keep
 #include "pros/motors.h"
@@ -13,11 +15,11 @@
 #include <utility>
 
 constexpr double PI = 3.14159265358979323846;
-constexpr double DRIVE_DEADBAND = 0.035;
-constexpr double DRIVE_SLEW = 0.14;
-constexpr double CD_TURN_NONLINEARITY = 0.52;
-constexpr double CD_NEG_INERTIA_SCALAR = 2.5;
-constexpr double CD_SENSITIVITY = 1.45;
+constexpr double DRIVE_DEADBAND = 0.04;
+constexpr double DRIVE_SLEW = 0.135;
+constexpr double CD_TURN_NONLINEARITY = 0.55;
+constexpr double CD_NEG_INERTIA_SCALAR = 2.15;
+constexpr double CD_SENSITIVITY = 1.42;
 constexpr double JOYSTICK_SCALE = 127.0;
 constexpr double TIP_THRESHOLD = 0.14; // 0.12–0.18 range
 constexpr double TIP_CREEP_SCALE = 0.35;   // 0.25–0.45 typical
@@ -109,7 +111,7 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
 }
 
 
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
+pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 pros::Rotation horizontalEnc(20);
 lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
@@ -201,14 +203,26 @@ void autonomous() {
 
 
 void opcontrol() {
+    constexpr int kIntakeSpeed = 127;
     while (true) {
-        double throttle = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) / JOYSTICK_SCALE;
-        double turn = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X) / JOYSTICK_SCALE;
+        double throttle = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) / JOYSTICK_SCALE;
+        double turn = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X) / JOYSTICK_SCALE;
         std::pair<double, double> drive = cheesyDrive(throttle, turn);
         double left = _clamp(drive.first, -1.0, 1.0);
         double right = _clamp(drive.second, -1.0, 1.0);
         leftMotors.move(static_cast<int>(std::lround(left * JOYSTICK_SCALE)));
         rightMotors.move(static_cast<int>(std::lround(right * JOYSTICK_SCALE)));
+
+        const bool intake_fwd = master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+        const bool intake_rev = master.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
+        int intake_power = 0;
+        if (intake_fwd) {  // R2 has priority over R1 for deterministic control.
+            intake_power = kIntakeSpeed;
+        } else if (intake_rev) {
+            intake_power = -kIntakeSpeed;
+        }
+        intakeMotor.move(intake_power);  // Direct mapping: pressed = spin, none = stop.
+
         pros::delay(10);
     }
 }
