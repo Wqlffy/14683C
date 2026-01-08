@@ -13,3 +13,8 @@ extern pros::Imu imu;
 
 extern pros::Distance leftDist;
 extern pros::Distance rightDist;
+
+extern pros::adi::Pneumatics matchloader;
+extern pros::adi::Pneumatics midgoal;
+extern pros::adi::Pneumatics wing;
+extern pros::adi::Pneumatics middescore;

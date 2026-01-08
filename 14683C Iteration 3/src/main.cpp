@@ -166,8 +166,8 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 void initialize() {
-    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
-    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
+    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     
     chassis.calibrate();
     load_auton_state();
@@ -203,7 +203,15 @@ void autonomous() {
 
 
 void opcontrol() {
-    constexpr int kIntakeSpeed = 127;
+    chassis.cancelAllMotions();
+    bool flagStateLoader = false;
+    bool flagStateWing = false;
+    bool flagStateDescore = false;
+
+    bool lastA = false;
+    bool lastB = false;
+    bool lastDown = false;
+
     while (true) {
         double throttle = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) / JOYSTICK_SCALE;
         double turn = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X) / JOYSTICK_SCALE;
@@ -213,15 +221,66 @@ void opcontrol() {
         leftMotors.move(static_cast<int>(std::lround(left * JOYSTICK_SCALE)));
         rightMotors.move(static_cast<int>(std::lround(right * JOYSTICK_SCALE)));
 
-        const bool intake_fwd = master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-        const bool intake_rev = master.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
-        int intake_power = 0;
-        if (intake_fwd) {  // R2 has priority over R1 for deterministic control.
-            intake_power = kIntakeSpeed;
-        } else if (intake_rev) {
-            intake_power = -kIntakeSpeed;
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            intakeMotor.move(127);
+            outtakeMotor.move(40);
+        } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            intakeMotor.move(-127);
+            outtakeMotor.move(-127);
+        } else {
+            intakeMotor.move(0);
+            outtakeMotor.move(0);
         }
-        intakeMotor.move(intake_power);  // Direct mapping: pressed = spin, none = stop.
+
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            intakeMotor.move(127);
+            outtakeMotor.move(127);
+            midgoal.set_value(false);
+        } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+            outtakeMotor.move(-127);
+            intakeMotor.move(127);
+            midgoal.set_value(true);
+        } else {
+            outtakeMotor.move(0);
+            intakeMotor.move(0);
+            midgoal.set_value(false);
+        }
+
+        bool currA = master.get_digital(pros::E_CONTROLLER_DIGITAL_A);
+
+        if (currA && !lastA) {
+            flagStateLoader = !flagStateLoader;
+            if (flagStateLoader)
+                matchloader.extend();
+            else
+                matchloader.retract();
+        }
+
+        lastA = currA;
+
+        bool currB = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+
+        if (currB && !lastB) {
+            flagStateWing = !flagStateWing;
+            if (flagStateWing)
+                wing.extend();
+            else
+                wing.retract();
+        }
+
+        lastB = currB;
+
+        bool currDown = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+
+        if (currDown && !lastDown) {
+            flagStateDescore = !flagStateDescore;
+            if (flagStateDescore)
+                middescore.extend();
+            else
+                middescore.retract();
+        }
+
+        lastDown = currDown;
 
         pros::delay(10);
     }
