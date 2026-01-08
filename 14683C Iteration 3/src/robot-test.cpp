@@ -28,10 +28,11 @@
 //   ],
 //   "repeat": 6,
 //   "auton_name": "Calibration Tests",
-//   "auton_fn": "calibration_tests_auton"
+//   "auton_fn": "calibration_auton"
 // }
 
 #include "main.h"
+#include "robot-test.hpp"
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -69,7 +70,7 @@ extern lemlib::Chassis chassis;
 #endif
 
 // Auton selector hint:
-//   Add {CAL_AUTON_NAME, calibration_tests_auton} to your auton list, or call calibration_tests_auton() in autonomous().
+//   Add {CAL_AUTON_NAME, calibration_auton} to your auton list, or call calibration_auton() in autonomous().
 static const char* CAL_AUTON_NAME = "Calibration Tests";
 static const bool CAL_HAS_SETPOS = true;
 static const double CAL_PI = 3.141592653589793;
@@ -243,6 +244,6 @@ void run_calibration_tests() {
   }
 }
 
-void calibration_tests_auton() {
+void calibration_auton() {
   run_calibration_tests();
 }

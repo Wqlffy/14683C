@@ -1,4 +1,5 @@
 #include "auton_selector.hpp"
+#include "robot-test.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -50,6 +51,8 @@ const AutonInfo AUTONS[AUTON_COUNT] = {
      "awp blue left: secure win point and park setup.", nullptr},
     {AutonId::AwpBlueRight, "AWP BLUE RIGHT",
      "awp blue right: secure win point and park setup.", nullptr},
+    {AutonId::CALIBRATION, "Calibration",
+     "sensor + drivetrain calibration routine.", nullptr},
     {AutonId::Skills, "SKILLS",
      "skills run: full field cycle with max scoring route.", nullptr},
 };
@@ -161,6 +164,9 @@ void run_selected_auton() {
             break;
         case AutonId::AwpBlueRight:
             // TODO: call AWP blue right auton.
+            break;
+        case AutonId::CALIBRATION:
+            calibration_auton();
             break;
         case AutonId::Skills:
             // TODO: call skills auton.

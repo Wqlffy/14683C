@@ -16,6 +16,7 @@ enum class AutonId : uint8_t {
     AwpRedRight,
     AwpBlueLeft,
     AwpBlueRight,
+    CALIBRATION,
     Skills
 };
 
@@ -31,7 +32,7 @@ struct AutonInfo {
     const void* img_src;
 };
 
-constexpr size_t AUTON_COUNT = 13;
+constexpr size_t AUTON_COUNT = 14;
 
 extern const AutonInfo AUTONS[AUTON_COUNT];
 extern volatile AutonId g_selected_auton;
