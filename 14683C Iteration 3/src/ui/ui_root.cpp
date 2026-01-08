@@ -9,6 +9,24 @@
 #include "pages/ui_sensors.hpp"
 #include "ui_theme.hpp"
 
+extern "C" {
+namespace pros {
+namespace c {
+void display_mutex_take(void) __attribute__((weak));
+void display_mutex_give(void) __attribute__((weak));
+}
+}
+}
+
+extern "C" {
+namespace pros {
+namespace c {
+void display_mutex_take(void) { lv_lock(); }  // Fix: PROS 4.x doesn't export these; wrap LVGL lock.
+void display_mutex_give(void) { lv_unlock(); }  // Fix: ensures UI updates are mutex-protected.
+}
+}
+}
+
 namespace ui_root {
 namespace {
 enum class PageId : uint8_t { Autons, Motors, Sensors };
@@ -46,7 +64,7 @@ void init() {
     if (s_inited) {
         return;
     }
-    lv_lock();
+    pros::c::display_mutex_take();  // Fix: LVGL was updated without the PROS display mutex.
     lv_obj_t* scr = lv_screen_active();
     ui_theme::apply_screen(scr);
     lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
@@ -92,14 +110,14 @@ void init() {
 
     show_page(PageId::Autons);
     s_inited = true;
-    lv_unlock();
+    pros::c::display_mutex_give();  // Release display mutex after LVGL init work.
 }
 
 void update_fast() {
     if (!s_inited) {
         return;
     }
-    lv_lock();
+    pros::c::display_mutex_take();  // Fix: guard LVGL label updates from the UI task.
     switch (s_active) {
         case PageId::Autons:
             ui_autons::update();
@@ -111,6 +129,6 @@ void update_fast() {
             ui_sensors::update();
             break;
     }
-    lv_unlock();
+    pros::c::display_mutex_give();  // Allow LVGL's own task to resume safely.
 }
 }

@@ -186,6 +186,7 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_t* left = lv_obj_create(content);
     ui_theme::apply_panel(left);
     lv_obj_set_width(left, ui_theme::kLeftColumnWidth);
+    lv_obj_set_height(left, LV_PCT(100));  // Fix height so the auton list can overflow and scroll.
     lv_obj_set_flex_flow(left, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(left, ui_theme::kPadSm, LV_PART_MAIN);
 
@@ -195,7 +196,8 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(list, 1);
     lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_set_scroll_dir(list, LV_DIR_VER);
+    lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLLABLE);  // Ensure the auton list is a scroll container.
+    lv_obj_set_scroll_dir(list, LV_DIR_VER);  // Vertical scrolling for the auton list.
     lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(list, 0, LV_PART_MAIN);
@@ -204,7 +206,7 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_style_bg_color(list, ui_theme::color_border(),
                               LV_PART_SCROLLBAR);
     lv_obj_set_style_bg_opa(list, LV_OPA_50, LV_PART_SCROLLBAR);
-    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_ACTIVE);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_AUTO);  // Show scrollbar only when scrolling.
 
     for (size_t i = 0; i < AUTON_COUNT; ++i) {
         const AutonInfo* info = &AUTONS[i];

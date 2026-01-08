@@ -146,9 +146,13 @@ lv_obj_t* build(lv_obj_t* parent) {
     // Left column: main grid
     lv_obj_t* grid = lv_obj_create(content);
     set_transparent(grid);
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLLABLE);  // Allow sensor grid to scroll when content exceeds view.
+    lv_obj_set_scroll_dir(grid, LV_DIR_VER);  // Vertical scrolling for sensor grid.
+    lv_obj_set_scrollbar_mode(grid, LV_SCROLLBAR_MODE_AUTO);  // Auto scrollbars for sensor grid.
     lv_obj_set_flex_flow(grid, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(grid, ui_theme::kPadSm, LV_PART_MAIN);
     lv_obj_set_flex_grow(grid, 1);
+    lv_obj_set_height(grid, LV_PCT(100));  // Fixed height keeps grid from auto-expanding and blocking scroll.
     lv_obj_set_width(grid, LV_PCT(100));
 
     // Top row: distances

@@ -229,6 +229,7 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(table_panel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(table_panel, 1);
     lv_obj_set_width(table_panel, LV_PCT(100));
+    lv_obj_set_height(table_panel, LV_PCT(100));  // Fix height so the rows area can scroll.
     lv_obj_set_style_pad_row(table_panel, ui_theme::kPadSm, LV_PART_MAIN);
 
     lv_obj_t* header = lv_obj_create(table_panel);
@@ -257,6 +258,9 @@ lv_obj_t* build(lv_obj_t* parent) {
 
     lv_obj_t* rows = lv_obj_create(table_panel);
     set_transparent(rows);
+    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLLABLE);  // Re-enable scrolling on the motor rows container.
+    lv_obj_set_scroll_dir(rows, LV_DIR_VER);  // Vertical scroll for motor rows.
+    lv_obj_set_scrollbar_mode(rows, LV_SCROLLBAR_MODE_AUTO);  // Scrollbar only when needed.
     lv_obj_set_style_pad_row(rows, ui_theme::kPadSm, LV_PART_MAIN);
     lv_obj_set_flex_flow(rows, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(rows, LV_PCT(100));
@@ -309,6 +313,8 @@ void update() {
     if (!s_root) {
         return;
     }
+
+    lv_label_set_text_fmt(s_header_value, "T=%lu", pros::millis());  // TEMP: heartbeat to prove update loop; remove after confirmation.
 
     for (size_t i = 0; i < s_row_count; ++i) {
         const MotorEntry& entry = s_motors[i];
