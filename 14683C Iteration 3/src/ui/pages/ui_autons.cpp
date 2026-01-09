@@ -24,6 +24,7 @@ constexpr uint32_t kLockBtnLocked = 0x2f7d4c;
 
 void set_transparent(lv_obj_t* obj) {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(obj, LV_DIR_NONE);  // Prevent parents from hijacking scroll gestures.
     lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
@@ -185,6 +186,8 @@ lv_obj_t* build(lv_obj_t* parent) {
 
     lv_obj_t* left = lv_obj_create(content);
     ui_theme::apply_panel(left);
+    lv_obj_remove_flag(left, LV_OBJ_FLAG_SCROLLABLE);  // Keep scroll on the list only.
+    lv_obj_set_scroll_dir(left, LV_DIR_NONE);  // Block parent scrolling.
     lv_obj_set_width(left, ui_theme::kLeftColumnWidth);
     lv_obj_set_height(left, LV_PCT(100));  // Fix height so the auton list can overflow and scroll.
     lv_obj_set_flex_flow(left, LV_FLEX_FLOW_COLUMN);
@@ -196,7 +199,11 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(list, 1);
     lv_obj_set_width(list, LV_PCT(100));
+    lv_obj_set_height(list, 0);  // Flex-constrained height prevents auto-expanding and enables scroll.
     lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLLABLE);  // Ensure the auton list is a scroll container.
+    lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLL_CHAIN);  // Enable drag scrolling on button list.
     lv_obj_set_scroll_dir(list, LV_DIR_VER);  // Vertical scrolling for the auton list.
     lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);

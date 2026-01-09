@@ -7,6 +7,7 @@
 #include "pages/ui_autons.hpp"
 #include "pages/ui_motors.hpp"
 #include "pages/ui_sensors.hpp"
+#include "pages/ui_odomcalib.hpp"
 #include "ui_theme.hpp"
 
 extern "C" {
@@ -21,24 +22,25 @@ void display_mutex_give(void) __attribute__((weak));
 extern "C" {
 namespace pros {
 namespace c {
-void display_mutex_take(void) { lv_lock(); }  // Fix: PROS 4.x doesn't export these; wrap LVGL lock.
-void display_mutex_give(void) { lv_unlock(); }  // Fix: ensures UI updates are mutex-protected.
+void display_mutex_take(void) { lv_lock(); }
+void display_mutex_give(void) { lv_unlock(); }
 }
 }
 }
 
 namespace ui_root {
 namespace {
-enum class PageId : uint8_t { Autons, Motors, Sensors };
+    enum class PageId : uint8_t { Autons, Motors, Sensors, Odom };
 
-lv_obj_t* s_pages[3] = {};
-lv_obj_t* s_nav_buttons[3] = {};
+constexpr size_t kPageCount = 4;
+lv_obj_t* s_pages[kPageCount] = {};
+lv_obj_t* s_nav_buttons[kPageCount] = {};
 PageId s_active = PageId::Autons;
 bool s_inited = false;
 
 void show_page(PageId id) {
     s_active = id;
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < kPageCount; ++i) {
         const bool active = (i == static_cast<size_t>(id));
         if (s_pages[i]) {
             if (active) {
@@ -79,8 +81,8 @@ void init() {
     lv_obj_set_flex_align(nav, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
 
-    const char* nav_labels[3] = {"AUTONS", "MOTORS", "SENSORS"};
-    for (size_t i = 0; i < 3; ++i) {
+    const char* nav_labels[kPageCount] = {"AUTONS", "MOTORS", "SENSORS", "ODOM"};
+    for (size_t i = 0; i < kPageCount; ++i) {
         lv_obj_t* btn = lv_button_create(nav);
         ui_theme::apply_button(btn);
         lv_obj_set_flex_grow(btn, 1);
@@ -107,6 +109,7 @@ void init() {
     s_pages[0] = ui_autons::build(content);
     s_pages[1] = ui_motors::build(content);
     s_pages[2] = ui_sensors::build(content);
+    s_pages[3] = ui_odomcalib::build(content);
 
     show_page(PageId::Autons);
     s_inited = true;
@@ -127,6 +130,9 @@ void update_fast() {
             break;
         case PageId::Sensors:
             ui_sensors::update();
+            break;
+        case PageId::Odom:
+            ui_odomcalib::update();
             break;
     }
     pros::c::display_mutex_give();  // Allow LVGL's own task to resume safely.
