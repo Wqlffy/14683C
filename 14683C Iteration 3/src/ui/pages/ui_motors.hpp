@@ -17,8 +17,7 @@ enum class MotorMetric : uint8_t {
 
 struct MotorEntry {
     const char* name;
-    pros::AbstractMotor* motor;
-    std::uint8_t index;
+    pros::Motor* motor;
 };
 
 lv_obj_t* build(lv_obj_t* parent);

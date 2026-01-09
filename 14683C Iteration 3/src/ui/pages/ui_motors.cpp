@@ -49,14 +49,14 @@ size_t s_row_count = 0;
 
 // Telemetry reads from hardware defined in robot_config.cpp.
 MotorEntry kMotorList[] = {
-    {"Left 1", &leftMotors, 0},
-    {"Left 2", &leftMotors, 1},
-    {"Left 3", &leftMotors, 2},
-    {"Right 1", &rightMotors, 0},
-    {"Right 2", &rightMotors, 1},
-    {"Right 3", &rightMotors, 2},
-    {"Intake", &intakeMotor, 0},
-    {"Outtake", &outtakeMotor, 0},
+    {"LF", &leftMotor1},
+    {"LM", &leftMotor2},
+    {"LB", &leftMotor3},
+    {"RF", &rightMotor1},
+    {"RM", &rightMotor2},
+    {"RB", &rightMotor3},
+    {"INTAKE", &intakeMotor},
+    {"OUTTAKE", &outtakeMotor},
 };
 constexpr size_t kMotorCount = sizeof(kMotorList) / sizeof(kMotorList[0]);
 
@@ -65,6 +65,7 @@ size_t s_motor_count = kMotorCount;
 
 void set_transparent(lv_obj_t* obj) {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(obj, LV_DIR_NONE);  // Prevent parent containers from intercepting scroll.
     lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
@@ -100,7 +101,7 @@ MetricValue read_metric(const MotorEntry& entry, MotorMetric metric) {
 
     switch (metric) {
         case MotorMetric::Temp: {
-            out.value = entry.motor->get_temperature(entry.index);
+            out.value = entry.motor->get_temperature();
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.1f";
             if (out.value >= 60.0) {
@@ -111,37 +112,34 @@ MetricValue read_metric(const MotorEntry& entry, MotorMetric metric) {
             break;
         }
         case MotorMetric::Current: {
-            const double current_a =
-                entry.motor->get_current_draw(entry.index) / 1000.0;
+            const double current_a = entry.motor->get_current_draw() / 1000.0;
             out.value = current_a;
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.2f";
             break;
         }
         case MotorMetric::Power: {
-            const double current_a =
-                entry.motor->get_current_draw(entry.index) / 1000.0;
-            const double voltage_v =
-                entry.motor->get_voltage(entry.index) / 1000.0;
+            const double current_a = entry.motor->get_current_draw() / 1000.0;
+            const double voltage_v = entry.motor->get_voltage() / 1000.0;
             out.value = current_a * voltage_v;
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.2f";
             break;
         }
         case MotorMetric::Voltage: {
-            out.value = entry.motor->get_voltage(entry.index) / 1000.0;
+            out.value = entry.motor->get_voltage() / 1000.0;
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.2f";
             break;
         }
         case MotorMetric::Velocity: {
-            out.value = entry.motor->get_actual_velocity(entry.index);
+            out.value = entry.motor->get_actual_velocity();
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.0f";
             break;
         }
         case MotorMetric::Torque: {
-            out.value = entry.motor->get_torque(entry.index);
+            out.value = entry.motor->get_torque();
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.2f";
             break;
@@ -204,6 +202,8 @@ lv_obj_t* build(lv_obj_t* parent) {
     // Left column: metric selector
     lv_obj_t* mode_panel = lv_obj_create(content);
     ui_theme::apply_panel(mode_panel);
+    lv_obj_remove_flag(mode_panel, LV_OBJ_FLAG_SCROLLABLE);  // Keep scrolling in the table only.
+    lv_obj_set_scroll_dir(mode_panel, LV_DIR_NONE);
     lv_obj_set_width(mode_panel, kLeftColumnWidth);
     lv_obj_set_flex_flow(mode_panel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(mode_panel, ui_theme::kPadSm, LV_PART_MAIN);
@@ -226,6 +226,8 @@ lv_obj_t* build(lv_obj_t* parent) {
     // Right column: motor table
     lv_obj_t* table_panel = lv_obj_create(content);
     ui_theme::apply_panel(table_panel);
+    lv_obj_remove_flag(table_panel, LV_OBJ_FLAG_SCROLLABLE);  // Avoid parent scroll conflicts.
+    lv_obj_set_scroll_dir(table_panel, LV_DIR_NONE);
     lv_obj_set_flex_flow(table_panel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(table_panel, 1);
     lv_obj_set_width(table_panel, LV_PCT(100));
@@ -259,11 +261,15 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_t* rows = lv_obj_create(table_panel);
     set_transparent(rows);
     lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLLABLE);  // Re-enable scrolling on the motor rows container.
+    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    lv_obj_add_flag(rows,LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLL_CHAIN);  // Allow drag scroll on rows.
     lv_obj_set_scroll_dir(rows, LV_DIR_VER);  // Vertical scroll for motor rows.
     lv_obj_set_scrollbar_mode(rows, LV_SCROLLBAR_MODE_AUTO);  // Scrollbar only when needed.
     lv_obj_set_style_pad_row(rows, ui_theme::kPadSm, LV_PART_MAIN);
     lv_obj_set_flex_flow(rows, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(rows, LV_PCT(100));
+    lv_obj_set_height(rows, 0);  // Constrain height so rows can actually scroll.
     lv_obj_set_flex_grow(rows, 1);
 
     s_row_count = std::min(s_motor_count, kMaxRows);
