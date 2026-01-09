@@ -114,7 +114,7 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 pros::Rotation horizontalEnc(20);
-lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
+lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_275, -5.75);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors, 
@@ -221,30 +221,35 @@ void opcontrol() {
         leftMotors.move(static_cast<int>(std::lround(left * JOYSTICK_SCALE)));
         rightMotors.move(static_cast<int>(std::lround(right * JOYSTICK_SCALE)));
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            intakeMotor.move(127);
-            outtakeMotor.move(40);
-        } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            intakeMotor.move(-127);
-            outtakeMotor.move(-127);
-        } else {
-            intakeMotor.move(0);
-            outtakeMotor.move(0);
+        int intake = 0;
+        int outtake = 0;
+
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+            intake = 127;
+            outtake = -127;
+            midgoal.set_value(true);
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+            intake = 127;
+            outtake = 127;
+            midgoal.set_value(false);
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            intake = 127;
+            outtake = 40;
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            intake = -127;
+            outtake = -127;
+        }
+        else {
+            midgoal.set_value(false);
         }
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-            intakeMotor.move(127);
-            outtakeMotor.move(127);
-            midgoal.set_value(false);
-        } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            outtakeMotor.move(-127);
-            intakeMotor.move(127);
-            midgoal.set_value(true);
-        } else {
-            outtakeMotor.move(0);
-            intakeMotor.move(0);
-            midgoal.set_value(false);
-        }
+        // Send motor commands ONCE
+        intakeMotor.move(intake);
+        outtakeMotor.move(outtake);
+
 
         bool currA = master.get_digital(pros::E_CONTROLLER_DIGITAL_A);
 
