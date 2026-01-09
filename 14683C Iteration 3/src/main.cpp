@@ -14,99 +14,62 @@
 #include <cmath>
 #include <utility>
 
-constexpr double PI = 3.14159265358979323846;
-constexpr double DRIVE_DEADBAND = 0.04;
-constexpr double DRIVE_SLEW = 0.135;
-constexpr double CD_TURN_NONLINEARITY = 0.55;
-constexpr double CD_NEG_INERTIA_SCALAR = 2.15;
-constexpr double CD_SENSITIVITY = 1.42;
 constexpr double JOYSTICK_SCALE = 127.0;
-constexpr double TIP_THRESHOLD = 0.14; // 0.12–0.18 range
-constexpr double TIP_CREEP_SCALE = 0.35;   // 0.25–0.45 typical
+constexpr double DEADBAND = 0.05;
+constexpr double THROTTLE_EXPO = 1.6;
+constexpr double TURN_EXPO = 2.2;
+constexpr double TURN_AT_FULL = 0.55;
+constexpr double BASE_STEER = 0.15;
+constexpr double TURN_IN_PLACE_GAIN = 0.75;
+constexpr double TURN_IN_PLACE_THROTTLE = 0.10;
 
-
-constexpr double MIN_TURN_GAIN = 0.93;
-constexpr double TURN_IN_PLACE_GAIN = 1.18;
-
-static double _clamp(double value, double minValue, double maxValue) {
+static double clamp(double value, double minValue, double maxValue) {
     return std::max(minValue, std::min(maxValue, value));
 }
 
-static double _turnRemapping(double iturn) {
-    double denominator = std::sin(PI / 2 * CD_TURN_NONLINEARITY);
-    double first =
-        std::sin(PI / 2 * CD_TURN_NONLINEARITY * iturn) / denominator;
-    return std::sin(PI / 2 * CD_TURN_NONLINEARITY * first) / denominator;
+static double apply_deadband_rescale(double value, double db) {
+    const double mag = std::abs(value);
+    if (mag <= db) {
+        return 0.0;
+    }
+    const double scaled = (mag - db) / (1.0 - db);
+    return std::copysign(scaled, value);
 }
 
-static double quickStopAccumlator = 0.0;
-static double negInertiaAccumlator = 0.0;
-static void _updateAccumulators() {
-    if (negInertiaAccumlator > 1) negInertiaAccumlator -= 1;
-    else if (negInertiaAccumlator < -1) negInertiaAccumlator += 1;
-    else negInertiaAccumlator = 0;
-
-    if (quickStopAccumlator > 1) quickStopAccumlator -= 1;
-    else if (quickStopAccumlator < -1) quickStopAccumlator += 1;
-    else quickStopAccumlator = 0.0;
+static double expo(double value, double e) {
+    const double mag = std::pow(std::abs(value), e);
+    return std::copysign(mag, value);
 }
 
-static double prevTurn = 0.0;
-static double prevThrottle = 0.0;
+static std::pair<double, double> arcDrive(double throttle, double turn) {
+    throttle = apply_deadband_rescale(throttle, DEADBAND);
+    turn = apply_deadband_rescale(turn, DEADBAND);
 
-static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
-    bool turnInPlace = false;
-    double linearCmd = ithrottle;
+    throttle = expo(throttle, THROTTLE_EXPO);
+    turn = expo(turn, TURN_EXPO);
 
-    if (std::abs(ithrottle) < TIP_THRESHOLD && std::abs(iturn) > DRIVE_DEADBAND) {
-        turnInPlace = true;
-    }
-    if (linearCmd - prevThrottle > DRIVE_SLEW) {
-        linearCmd = prevThrottle + DRIVE_SLEW;
-    } else if (linearCmd - prevThrottle < -(DRIVE_SLEW * 2)) {
-        linearCmd = prevThrottle - (DRIVE_SLEW * 2);
-    }
+    double left = 0.0;
+    double right = 0.0;
 
-    double remappedTurn = _turnRemapping(iturn);
-
-    double left = 0.0, right = 0.0;
-
-    if (turnInPlace) {
-        linearCmd *= TIP_CREEP_SCALE;
-    }
-    if (turnInPlace) {
-        double angularCmd =
-            (remappedTurn + negInertiaAccumlator)
-            * CD_SENSITIVITY
-            * TURN_IN_PLACE_GAIN;
-
-        left  = linearCmd + angularCmd;
-        right = linearCmd - angularCmd;
-
+    if (std::abs(throttle) < TURN_IN_PLACE_THROTTLE) {
+        const double angular = turn * TURN_IN_PLACE_GAIN;
+        left = angular;
+        right = -angular;
     } else {
-        double negInertiaPower = (iturn - prevTurn) * CD_NEG_INERTIA_SCALAR;
-        negInertiaAccumlator += negInertiaPower;
-
-        double speed = std::abs(linearCmd);
-
-        double turnGain =
-            1.0 - (1.0 - MIN_TURN_GAIN) * speed;
-
-        double angularCmd =
-            turnGain * (remappedTurn + negInertiaAccumlator) * CD_SENSITIVITY
-            - quickStopAccumlator;
-
-        left  = linearCmd + angularCmd;
-        right = linearCmd - angularCmd;
-
-        _updateAccumulators();
+        const double angular =
+            turn * (TURN_AT_FULL * std::abs(throttle) + BASE_STEER);
+        left = throttle + angular;
+        right = throttle - angular;
     }
 
-    left  = _clamp(left,  -1.0, 1.0);
-    right = _clamp(right, -1.0, 1.0);
+    const double maxMag = std::max(std::abs(left), std::abs(right));
+    if (maxMag > 1.0) {
+        left /= maxMag;
+        right /= maxMag;
+    }
 
-    prevTurn = iturn;
-    prevThrottle = linearCmd;
+    left = clamp(left, -1.0, 1.0);
+    right = clamp(right, -1.0, 1.0);
     return {left, right};
 }
 
@@ -114,7 +77,7 @@ static std::pair<double, double> cheesyDrive(double ithrottle, double iturn) {
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 pros::Rotation horizontalEnc(20);
-lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_275, -5.75);
+lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors, 
@@ -215,30 +178,28 @@ void opcontrol() {
     while (true) {
         double throttle = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) / JOYSTICK_SCALE;
         double turn = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X) / JOYSTICK_SCALE;
-        std::pair<double, double> drive = cheesyDrive(throttle, turn);
-        double left = _clamp(drive.first, -1.0, 1.0);
-        double right = _clamp(drive.second, -1.0, 1.0);
-        leftMotors.move(static_cast<int>(std::lround(left * JOYSTICK_SCALE)));
-        rightMotors.move(static_cast<int>(std::lround(right * JOYSTICK_SCALE)));
+        auto [left, right] = arcDrive(throttle, turn);
+        leftMotors.move(static_cast<int>(left * JOYSTICK_SCALE));
+        rightMotors.move(static_cast<int>(right * JOYSTICK_SCALE));
 
         int intake = 0;
         int outtake = 0;
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
-            outtake = -127;
+            outtake = 127;
             midgoal.set_value(true);
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
             outtake = 127;
             midgoal.set_value(false);
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            intake = 127;
-            outtake = 40;
-        }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            intake = 127;
+            outtake = -50;
+        }
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
             intake = -127;
             outtake = -127;
         }
@@ -246,7 +207,6 @@ void opcontrol() {
             midgoal.set_value(false);
         }
 
-        // Send motor commands ONCE
         intakeMotor.move(intake);
         outtakeMotor.move(outtake);
 
