@@ -6,6 +6,13 @@
 extern pros::MotorGroup leftMotors;
 extern pros::MotorGroup rightMotors;
 
+extern pros::Motor leftMotor1;
+extern pros::Motor leftMotor2;
+extern pros::Motor leftMotor3;
+extern pros::Motor rightMotor1;
+extern pros::Motor rightMotor2;
+extern pros::Motor rightMotor3;
+
 extern pros::Motor intakeMotor;
 extern pros::Motor outtakeMotor;
 
