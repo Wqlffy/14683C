@@ -186,23 +186,22 @@ void opcontrol() {
         int outtake = 0;
 
         // L buttons take priority
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
             outtake = 127;
             midgoal.set_value(true);   // while held
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
-            outtake = -127;
+            outtake = 127;
             midgoal.set_value(false);
         }
         else {
-            // R buttons for manual intake control
-            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
                 intake = 127;
-                outtake = 40; 
+                outtake = -40; 
             }
-            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
                 intake = -127;
                 outtake = -127;
             }
