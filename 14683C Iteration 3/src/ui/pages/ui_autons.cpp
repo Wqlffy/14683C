@@ -249,7 +249,7 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(banner, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(banner, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    ui_theme::make_label(banner, "ARSENAL", ui_theme::color_text(),
+    ui_theme::make_label(banner, "14683C", ui_theme::color_text(),
                          ui_theme::font_title());
 
     lv_obj_t* detail = lv_obj_create(right);
@@ -327,4 +327,4 @@ void update() {
     lv_label_set_text_fmt(s_timer_label, "%d:%02d", minutes, seconds);
     update_lock_ui();
 }
-}  // namespace ui_autons
+}
