@@ -17,7 +17,7 @@
 constexpr double JOYSTICK_SCALE = 127.0;
 constexpr double DEADBAND = 0.05;
 constexpr double THROTTLE_EXPO = 1.6;
-constexpr double TURN_EXPO = 2.2;
+constexpr double TURN_EXPO = 1.8;
 constexpr double TURN_AT_FULL = 0.55;
 constexpr double BASE_STEER = 0.15;
 constexpr double TURN_IN_PLACE_GAIN = 0.75;
@@ -185,31 +185,32 @@ void opcontrol() {
         int intake = 0;
         int outtake = 0;
 
+        // L buttons take priority
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
             outtake = 127;
-            midgoal.set_value(true);
+            midgoal.set_value(true);   // while held
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
-            outtake = 127;
+            outtake = -127;
             midgoal.set_value(false);
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            intake = 127;
-            outtake = -50;
-        }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-            intake = -127;
-            outtake = -127;
-        }
         else {
+            // R buttons for manual intake control
+            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+                intake = 127;
+                outtake = 40; 
+            }
+            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+                intake = -127;
+                outtake = -127;
+            }
             midgoal.set_value(false);
         }
 
         intakeMotor.move(intake);
         outtakeMotor.move(outtake);
-
 
         bool currA = master.get_digital(pros::E_CONTROLLER_DIGITAL_A);
 

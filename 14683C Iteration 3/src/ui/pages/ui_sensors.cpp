@@ -148,9 +148,9 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_t* grid = lv_obj_create(content);
     set_transparent(grid);
     lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLLABLE);  // Allow sensor grid to scroll when content exceeds view.
-    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM |
-                             LV_OBJ_FLAG_SCROLL_ELASTIC |
-                             LV_OBJ_FLAG_SCROLL_CHAIN);  // Enable drag scrolling on the grid.
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_CHAIN);  // Enable drag scrolling on the grid.
     lv_obj_set_scroll_dir(grid, LV_DIR_VER);  // Vertical scrolling for sensor grid.
     lv_obj_set_scrollbar_mode(grid, LV_SCROLLBAR_MODE_AUTO);  // Auto scrollbars for sensor grid.
     lv_obj_set_flex_flow(grid, LV_FLEX_FLOW_COLUMN);
