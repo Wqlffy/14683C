@@ -197,11 +197,11 @@ void opcontrol() {
             midgoal.set_value(false);
         }
         else {
-            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
                 intake = 127;
                 outtake = -40; 
             }
-            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
                 intake = -127;
                 outtake = -127;
             }
