@@ -27,6 +27,11 @@ constexpr double maxFwd = 0.35;
 constexpr int squareStableSamples = 8;
 constexpr int setStableSamples = 8;
 
+// Encoder drive control.
+constexpr double driveKp = 0.05;
+constexpr double driveTolIn = 0.5;
+constexpr int driveStableSamples = 4;
+
 // Motor group sizes (update if drive changes).
 constexpr int leftDriveCount = 3;
 constexpr int rightDriveCount = 3;
@@ -57,6 +62,11 @@ bool wallSquare(int timeoutMs = 800, int diffMmTol = 8,
 bool wallSetDistance(double targetMm, int timeoutMs = 900, int tolMm = 10,
                      double maxFwd = Tuning::maxFwd,
                      double faceHeadingDeg = 0.0);
+
+bool driveDistanceHeading(double inches,
+                          double faceHeadingDeg,
+                          int timeoutMs,
+                          double maxFwd = Tuning::maxFwd);
 
 RecoverResult recoverAfterContact(double desiredWallDistMm,
                                   double faceHeadingDeg,

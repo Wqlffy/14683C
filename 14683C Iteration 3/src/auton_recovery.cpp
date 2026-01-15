@@ -9,6 +9,12 @@
 namespace AutonRecovery {
 namespace {
 FilteredDistances g_distances{};
+std::atomic<double> g_last_drive_cmd{0.0};
+
+constexpr double kPi = 3.14159265358979323846;
+constexpr double kWheelDiameterIn = 3.25;
+constexpr double kMotorToWheelRatio = 4.0 / 3.0;
+constexpr double kWheelCircumferenceIn = kWheelDiameterIn * kPi;
 
 double clamp(double v, double lo, double hi) {
     if (v < lo) return lo;
@@ -27,6 +33,7 @@ void set_drive(double left, double right) {
     right = clamp(right, -1.0, 1.0);
     leftMotors.move(static_cast<int>(left * 127.0));
     rightMotors.move(static_cast<int>(right * 127.0));
+    g_last_drive_cmd.store(0.5 * (left + right), std::memory_order_relaxed);
 }
 
 double avg_group_velocity(const pros::MotorGroup& group, int count) {
@@ -35,6 +42,30 @@ double avg_group_velocity(const pros::MotorGroup& group, int count) {
         total += std::fabs(group.get_actual_velocity(static_cast<uint8_t>(i)));
     }
     return total / static_cast<double>(count);
+}
+
+double avg_group_position_deg(const pros::MotorGroup& group, int count) {
+    double total = 0.0;
+    for (int i = 0; i < count; ++i) {
+        total += group.get_position(static_cast<uint8_t>(i));
+    }
+    return total / static_cast<double>(count);
+}
+
+double avg_drive_position_in() {
+    const double left_deg =
+        avg_group_position_deg(leftMotors, Tuning::leftDriveCount);
+    const double right_deg =
+        avg_group_position_deg(rightMotors, Tuning::rightDriveCount);
+    const double avg_deg = 0.5 * (std::fabs(left_deg) + std::fabs(right_deg));
+    const double motor_revs = avg_deg / 360.0;
+    const double wheel_revs = motor_revs / kMotorToWheelRatio;
+    return wheel_revs * kWheelCircumferenceIn;
+}
+
+void tare_drive_encoders() {
+    leftMotors.tare_position();
+    rightMotors.tare_position();
 }
 
 void update_filtered_distances() {
@@ -92,6 +123,10 @@ bool detectStall(double driveCmd, int dtMs) {
 
     if (dtMs <= 0) {
         dtMs = Tuning::distUpdateMs;
+    }
+
+    if (std::isnan(driveCmd)) {
+        driveCmd = g_last_drive_cmd.load(std::memory_order_relaxed);
     }
 
     const double avg_left = avg_group_velocity(leftMotors, Tuning::leftDriveCount);
@@ -194,6 +229,42 @@ bool wallSetDistance(double targetMm, int timeoutMs, int tolMm, double maxFwd,
         }
 
         if (stable >= Tuning::setStableSamples) {
+            set_drive(0.0, 0.0);
+            return true;
+        }
+        pros::delay(Tuning::distUpdateMs);
+    }
+
+    set_drive(0.0, 0.0);
+    return false;
+}
+
+bool driveDistanceHeading(double inches,
+                          double faceHeadingDeg,
+                          int timeoutMs,
+                          double maxFwd) {
+    tare_drive_encoders();
+    const double target_sign = (inches >= 0.0) ? 1.0 : -1.0;
+
+    int stable = 0;
+    const int start = pros::millis();
+    while (pros::millis() - start < timeoutMs) {
+        const double traveled_in = target_sign * avg_drive_position_in();
+        const double error = inches - traveled_in;
+        const double fwd = clamp(Tuning::driveKp * error, -maxFwd, maxFwd);
+
+        const double heading_err = wrap_deg(faceHeadingDeg - imu.get_heading());
+        const double turn = clamp(Tuning::headingKp * heading_err,
+                                  -Tuning::maxTurn, Tuning::maxTurn);
+        set_drive(fwd + turn, fwd - turn);
+
+        if (std::fabs(error) <= Tuning::driveTolIn) {
+            ++stable;
+        } else {
+            stable = 0;
+        }
+
+        if (stable >= Tuning::driveStableSamples) {
             set_drive(0.0, 0.0);
             return true;
         }
