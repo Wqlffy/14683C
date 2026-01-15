@@ -76,9 +76,6 @@ static std::pair<double, double> arcDrive(double throttle, double turn) {
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-pros::Rotation horizontalEnc(20);
-lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
-
 lemlib::Drivetrain drivetrain(&leftMotors,
                               &rightMotors, 
                               11, 
@@ -111,7 +108,7 @@ lemlib::ControllerSettings angularController(2, // proportional gain (kP)
 
 lemlib::OdomSensors sensors(nullptr,
                             nullptr,
-                            &horizontal,
+                            nullptr,
                             nullptr, 
                             &imu 
 );
@@ -185,11 +182,10 @@ void opcontrol() {
         int intake = 0;
         int outtake = 0;
 
-        // L buttons take priority
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
             outtake = 127;
-            midgoal.set_value(true);   // while held
+            midgoal.set_value(true); 
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
