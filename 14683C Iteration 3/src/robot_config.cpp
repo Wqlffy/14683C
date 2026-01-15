@@ -20,6 +20,6 @@ pros::Distance leftDist(1);
 pros::Distance rightDist(10);
 
 pros::adi::Pneumatics matchloader('A', false);
-pros::adi::Pneumatics midgoal('B', false);
-pros::adi::Pneumatics wing('C', false);
+pros::adi::Pneumatics midgoal('C', false);
+pros::adi::Pneumatics wing('B', false);
 pros::adi::Pneumatics middescore('D', false);

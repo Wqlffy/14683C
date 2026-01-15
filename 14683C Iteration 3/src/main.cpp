@@ -182,22 +182,22 @@ void opcontrol() {
         int intake = 0;
         int outtake = 0;
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
             outtake = 127;
             midgoal.set_value(true); 
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
             outtake = 127;
             midgoal.set_value(false);
         }
         else {
-            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
                 intake = 127;
                 outtake = -40; 
             }
-            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+            else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
                 intake = -127;
                 outtake = -127;
             }
