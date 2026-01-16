@@ -128,6 +128,12 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 void initialize() {
     leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+
+    matchloader.set_value(false);
+    wing.set_value(false);
+    middescore.set_value(false);
+    midgoal.set_value(false);
+    pros::delay(30);
     
     chassis.calibrate();
     load_auton_state();
@@ -184,18 +190,18 @@ void opcontrol() {
 
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
-            outtake = 127;
+            outtake = -127;
             midgoal.set_value(true); 
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
-            outtake = 127;
+            outtake = -127;
             midgoal.set_value(false);
         }
         else {
             if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
                 intake = 127;
-                outtake = -40; 
+                outtake = 50; 
             }
             else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
                 intake = -127;
