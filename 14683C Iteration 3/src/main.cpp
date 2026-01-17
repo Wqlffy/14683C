@@ -2,11 +2,9 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
-#include "auton_recovery.hpp"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
 #include "robot_config.hpp"
-#include "pros/distance.hpp" // IWYU pragma: keep
 #include "pros/motors.h"
 #include "ui/ui_root.hpp"
 
@@ -155,16 +153,6 @@ void competition_initialize() {
 }
 void autonomous() {
     run_selected_auton();
-    /*
-    // Example usage (inside a contact-heavy auton segment):
-    // AutonRecovery::recoverAfterContact(300, 0.0);
-    //
-    // Example wrapper with monitoring:
-    // AutonRecovery::runSegmentWithRecovery(
-    //     [&]() { chassis.moveToPoint(24, 0, 1500); },
-    //     [&]() { return 0.6; },
-    //     300, 0.0, true, 2, 20);
-    */
 }
 
 
