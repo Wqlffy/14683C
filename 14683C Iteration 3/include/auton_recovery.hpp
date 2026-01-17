@@ -63,6 +63,18 @@ bool wallSetDistance(double targetMm, int timeoutMs = 900, int tolMm = 10,
                      double maxFwd = Tuning::maxFwd,
                      double faceHeadingDeg = 0.0);
 
+bool snapRightToWall(double targetMm,
+                     double faceHeadingDeg,
+                     int timeoutMs = 800,
+                     int tolMm = 10,
+                     double maxFwd = 0.25);
+
+bool snapLeftToWall(double targetMm,
+                    double faceHeadingDeg,
+                    int timeoutMs = 800,
+                    int tolMm = 10,
+                    double maxFwd = 0.25);
+
 bool driveDistanceHeading(double inches,
                           double faceHeadingDeg,
                           int timeoutMs,

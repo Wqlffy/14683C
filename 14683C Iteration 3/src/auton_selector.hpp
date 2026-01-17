@@ -4,18 +4,14 @@
 #include <cstdint>
 
 enum class AutonId : uint8_t {
-    Red43Left,
-    Red43Right,
     Blue43Left,
-    Blue43Right,
-    Long6RedLeft,
-    Long6RedRight,
-    Long6BlueLeft,
-    Long6BlueRight,
-    AwpRedLeft,
-    AwpRedRight,
-    AwpBlueLeft,
+    Red43Left,
+    Long9BlueLeft,
+    Long9BlueRight,
+    Long9RedLeft,
+    Long9RedRight,
     AwpBlueRight,
+    AwpRedRight,
     CALIBRATION,
     Skills
 };
@@ -32,7 +28,7 @@ struct AutonInfo {
     const void* img_src;
 };
 
-constexpr size_t AUTON_COUNT = 14;
+constexpr size_t AUTON_COUNT = 10;
 
 extern const AutonInfo AUTONS[AUTON_COUNT];
 extern volatile AutonId g_selected_auton;

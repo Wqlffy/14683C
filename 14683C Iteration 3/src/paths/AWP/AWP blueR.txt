@@ -1,0 +1,57 @@
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(-48.000000, -6.000000, 180.000000);
+
+chassis.moveToPoint(-48.0, -48.0, 1377);
+pros::delay(50);
+chassis.turnToHeading(270.0, 767);
+chassis.moveToPoint(-62.88, -48.0, 856);
+pros::delay(1800);
+chassis.moveToPoint(-31.92, -48.24, 1199, {.forwards = false});
+chassis.waitUntil(7.166138);
+intake.move(127);
+matchloader.extend();
+chassis.waitUntil(30.96093);
+outtake.move(127);
+matchloader.retract();
+chassis.waitUntilDone();
+pros::delay(2000);
+chassis.moveToPoint(-41.28, -48.24, 777);
+pros::delay(50);
+chassis.turnToHeading(35.48398, 841);
+chassis.moveToPoint(-24.0, -24.0, 1503);
+chassis.waitUntil(24.830799);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(50);
+chassis.turnToHeading(0.0, 558);
+chassis.moveToPoint(-24.0, 24.0, 1935);
+chassis.waitUntil(5.76);
+matchloader.retract();
+chassis.waitUntil(44.64);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(50);
+chassis.turnToHeading(315.643746, 598);
+chassis.moveToPoint(-13.44, 13.2, 860, {.forwards = false});
+chassis.waitUntil(4.919246);
+matchloader.retract();
+chassis.waitUntil(15.104754);
+outtake.move(127);
+midgoal.extend();
+chassis.waitUntilDone();
+pros::delay(1000);
+chassis.moveToPoint(-48.0, 48.0, 1522);
+chassis.waitUntil(5.430548);
+midgoal.retract();
+chassis.waitUntilDone();
+pros::delay(50);
+chassis.turnToHeading(270.0, 602);
+chassis.moveToPoint(-63.12, 48.0, 860);
+chassis.waitUntil(7.29931);
+matchlodaer toggle
+chassis.waitUntilDone();
+pros::delay(1500);
+chassis.moveToPoint(-31.92, 47.76, 1204, {.forwards = false});
+
+// Estimated total time: 14.92 s

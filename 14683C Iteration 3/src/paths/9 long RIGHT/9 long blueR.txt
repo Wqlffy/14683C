@@ -1,0 +1,64 @@
+// Path asset declarations
+// Add these near the top of your file:
+
+ASSET(autonomous_seg1_path_txt);
+ASSET(autonomous_seg2_path_txt);
+ASSET(autonomous_seg3_path_txt);
+ASSET(autonomous_seg7_path_txt);
+
+// Autonomous routine:
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(-62.640000, -17.040000, 90.000000);
+
+chassis.moveToPoint(-48.0, -17.04, 850);
+pros::delay(50);
+chassis.turnToHeading(105.215438, 509);
+chassis.follow("autonomous_seg1_path_txt", 1265, 9.0);
+chassis.waitUntil(21.49791);
+intake.move(127);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(50);
+chassis.follow("autonomous_seg2_path_txt", 1072, 9.0);
+chassis.waitUntil(4.435911);
+intake.move(127);
+matchloader.retract();
+chassis.waitUntil(19.765012);
+intake.move(127);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(1000);
+chassis.follow("autonomous_seg3_path_txt", 3880, 9.0, {.forwards = false});
+chassis.waitUntil(9.791251);
+intake.move(127);
+matchloader.retract();
+chassis.waitUntil(98.237126);
+intake.move(127);
+outtake.move(127);
+chassis.waitUntilDone();
+pros::delay(2000);
+chassis.moveToPoint(-61.2, -48.24, 1163);
+chassis.waitUntil(20.64);
+outtake.move(127);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(2000);
+chassis.moveToPoint(-29.76, -48.0, 1369, {.forwards = false});
+chassis.waitUntil(30.239119);
+outtake.move(127);
+matchloader.retract();
+chassis.waitUntilDone();
+pros::delay(1500);
+chassis.moveToPoint(-44.16, -48.0, 845);
+pros::delay(50);
+chassis.turnToHeading(333.960685, 677);
+chassis.follow("autonomous_seg7_path_txt", 1403, 9.0, {.forwards = false});
+chassis.waitUntil(27.146024);
+wing.extend();
+chassis.waitUntilDone();
+pros::delay(50);
+chassis.turnToHeading(270.0, 462);
+chassis.moveToPoint(-6.0, -60.0, 1661, {.forwards = false});
+
+// Estimated total time: 15.46 s
