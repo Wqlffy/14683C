@@ -15,11 +15,15 @@ constexpr int kImuStuckCycles = 20;
 constexpr int kDistNoTargetMm = 9999;
 constexpr int kDistNoTargetCycles = 4;
 constexpr int kDistStuckCycles = 12;
+constexpr int kDistStuckEpsilonMm = 2;
 constexpr int kDistFaultCycles = 3;
 
 constexpr double kStallVelocityRpm = 5.0;
 constexpr int kStallCurrentMa = 2000;
 constexpr int kStallCycles = 6;
+constexpr double kMoveRpmThreshold = 10.0;
+constexpr double kTurnRpmDeltaThreshold = 12.0;
+constexpr int kCmdVoltageMvThreshold = 1500;
 
 struct DistanceTracker {
     int last = 0;
@@ -57,7 +61,7 @@ double angle_delta(double a, double b) {
     return diff;
 }
 
-void update_imu() {
+void update_imu(bool expecting_turn) {
     if (imu.is_calibrating()) {
         g_detail.imu_status = ImuStatus::CALIBRATING;
         g_health.imu = HealthState::WARNING;
@@ -74,14 +78,14 @@ void update_imu() {
     static double last_heading = heading;
     static int stuck_count = 0;
     const double delta = angle_delta(heading, last_heading);
-    if (delta <= kImuStuckEpsilonDeg) {
+    if (expecting_turn && delta <= kImuStuckEpsilonDeg) {
         ++stuck_count;
     } else {
         stuck_count = 0;
     }
     last_heading = heading;
 
-    if (stuck_count >= kImuStuckCycles) {
+    if (expecting_turn && stuck_count >= kImuStuckCycles) {
         g_detail.imu_status = ImuStatus::FAULT;
         g_health.imu = HealthState::FAULT;
     } else {
@@ -91,7 +95,8 @@ void update_imu() {
 }
 
 DistanceStatus update_distance(pros::Distance& dist, DistanceTracker& t,
-                               HealthState& out_health) {
+                               HealthState& out_health,
+                               bool expecting_translate) {
     const int value = dist.get();
 
     if (value < 0) {
@@ -112,7 +117,10 @@ DistanceStatus update_distance(pros::Distance& dist, DistanceTracker& t,
         t.max_count = 0;
     }
 
-    if (value > 0 && value < kDistNoTargetMm && t.has_last && value == t.last) {
+    if (!expecting_translate) {
+        t.same_count = 0;  // Idle robots should not be flagged as stuck.
+    } else if (value > 0 && value < kDistNoTargetMm && t.has_last &&
+               std::abs(value - t.last) <= kDistStuckEpsilonMm) {
         ++t.same_count;
     } else {
         t.same_count = 0;
@@ -148,23 +156,31 @@ bool motor_is_stalled(pros::AbstractMotor& motor, std::uint8_t index) {
     return std::fabs(vel) <= kStallVelocityRpm && current >= kStallCurrentMa;
 }
 
+bool motor_is_commanded(pros::AbstractMotor& motor, std::uint8_t index) {
+    const int voltage = motor.get_voltage(index);
+    return std::abs(voltage) >= kCmdVoltageMvThreshold;
+}
+
 MotorStatus update_motor_group(pros::AbstractMotor& motor, int count,
                                MotorTracker& tracker, HealthState& out_health) {
     bool stalled = false;
+    bool commanded = false;
     for (int i = 0; i < count; ++i) {
-        if (motor_is_stalled(motor, static_cast<std::uint8_t>(i))) {
+        const auto idx = static_cast<std::uint8_t>(i);
+        const bool is_cmd = motor_is_commanded(motor, idx);
+        commanded = commanded || is_cmd;
+        if (is_cmd && motor_is_stalled(motor, idx)) {
             stalled = true;
-            break;
         }
     }
 
-    if (stalled) {
+    if (commanded && stalled) {
         ++tracker.stall_count;
     } else {
         tracker.stall_count = 0;
     }
 
-    if (tracker.stall_count >= kStallCycles) {
+    if (commanded && tracker.stall_count >= kStallCycles) {
         tracker.status = MotorStatus::STALL;
         out_health = HealthState::FAULT;
     } else {
@@ -176,14 +192,15 @@ MotorStatus update_motor_group(pros::AbstractMotor& motor, int count,
 
 MotorStatus update_motor(pros::AbstractMotor& motor, MotorTracker& tracker,
                          HealthState& out_health) {
-    const bool stalled = motor_is_stalled(motor, 0);
+    const bool commanded = motor_is_commanded(motor, 0);
+    const bool stalled = commanded && motor_is_stalled(motor, 0);
     if (stalled) {
         ++tracker.stall_count;
     } else {
         tracker.stall_count = 0;
     }
 
-    if (tracker.stall_count >= kStallCycles) {
+    if (commanded && tracker.stall_count >= kStallCycles) {
         tracker.status = MotorStatus::STALL;
         out_health = HealthState::FAULT;
     } else {
@@ -202,12 +219,32 @@ void sensor_health_update() {
     static MotorTracker intake_track{};
     static MotorTracker outtake_track{};
 
-    update_imu();
+    double left_rpm = 0.0;
+    double right_rpm = 0.0;
+    for (int i = 0; i < kLeftDriveCount; ++i) {
+        left_rpm += std::fabs(leftMotors.get_actual_velocity(
+            static_cast<std::uint8_t>(i)));
+    }
+    for (int i = 0; i < kRightDriveCount; ++i) {
+        right_rpm += std::fabs(rightMotors.get_actual_velocity(
+            static_cast<std::uint8_t>(i)));
+    }
+    left_rpm /= static_cast<double>(kLeftDriveCount);
+    right_rpm /= static_cast<double>(kRightDriveCount);
+
+    const double avg_rpm = 0.5 * (left_rpm + right_rpm);
+    const bool expecting_translate = avg_rpm > kMoveRpmThreshold;
+    const bool expecting_turn =
+        std::fabs(left_rpm - right_rpm) > kTurnRpmDeltaThreshold;
+
+    update_imu(expecting_turn);
 
     g_detail.left_dist_status =
-        update_distance(leftDist, left_track, g_health.leftDist);
+        update_distance(leftDist, left_track, g_health.leftDist,
+                        expecting_translate);
     g_detail.right_dist_status =
-        update_distance(rightDist, right_track, g_health.rightDist);
+        update_distance(rightDist, right_track, g_health.rightDist,
+                        expecting_translate);
 
     g_detail.left_drive_status =
         update_motor_group(leftMotors, kLeftDriveCount, left_drive_track,
