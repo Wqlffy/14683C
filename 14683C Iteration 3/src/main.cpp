@@ -2,13 +2,17 @@
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
+#include "liblvgl/lvgl.h"
 #include "pros/adi.hpp"
 #include "pros/misc.h"
+#include "pros/screen.hpp"
 #include "robot_config.hpp"
 #include "pros/motors.h"
 #include "ui/ui_root.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
 #include <cmath>
 #include <utility>
 
@@ -20,6 +24,12 @@ constexpr double TURN_AT_FULL = 0.55;
 constexpr double BASE_STEER = 0.15;
 constexpr double TURN_IN_PLACE_GAIN = 0.75;
 constexpr double TURN_IN_PLACE_THROTTLE = 0.10;
+
+constexpr std::uint32_t kLvTickMs = 5;
+constexpr std::uint32_t kUiUpdateMs = 100;
+constexpr std::uint32_t kTouchLogMs = 250;
+
+#define UI_TOUCH_DEBUG 1
 
 static double clamp(double value, double minValue, double maxValue) {
     return std::max(minValue, std::min(maxValue, value));
@@ -71,6 +81,79 @@ static std::pair<double, double> arcDrive(double throttle, double turn) {
     return {left, right};
 }
 
+extern "C" {
+namespace pros {
+namespace c {
+void display_mutex_take(void) __attribute__((weak));
+void display_mutex_give(void) __attribute__((weak));
+}
+}
+}
+
+static lv_indev_t* s_touch_indev = nullptr;
+
+#if UI_TOUCH_DEBUG
+static std::uint32_t s_touch_press_count = 0;
+static std::uint32_t s_touch_release_count = 0;
+static std::int16_t s_touch_last_x = -1;
+static std::int16_t s_touch_last_y = -1;
+static lv_indev_state_t s_touch_last_state = LV_INDEV_STATE_RELEASED;
+static std::uint32_t s_touch_last_log = 0;
+static std::uint32_t s_lvgl_last_log = 0;
+#endif
+
+static void touch_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
+    (void)indev;
+    const pros::screen_touch_status_s_t status =
+        pros::screen::touch_status();
+    const bool pressed = (status.touch_status == pros::E_TOUCH_PRESSED ||
+                          status.touch_status == pros::E_TOUCH_HELD);
+
+    data->state = pressed ? LV_INDEV_STATE_PRESSED
+                          : LV_INDEV_STATE_RELEASED;
+    if (status.x >= 0 && status.y >= 0) {
+        data->point.x = status.x;
+        data->point.y = status.y;
+#if UI_TOUCH_DEBUG
+        s_touch_last_x = status.x;
+        s_touch_last_y = status.y;
+#endif
+    } else {
+        data->point.x = (s_touch_last_x >= 0) ? s_touch_last_x : 0;
+        data->point.y = (s_touch_last_y >= 0) ? s_touch_last_y : 0;
+    }
+
+#if UI_TOUCH_DEBUG
+    if (data->state != s_touch_last_state) {
+        if (data->state == LV_INDEV_STATE_PRESSED) {
+            ++s_touch_press_count;
+        } else {
+            ++s_touch_release_count;
+        }
+    }
+    s_touch_last_state = data->state;
+    const std::uint32_t now = pros::millis();
+    if (now - s_touch_last_log >= kTouchLogMs) {
+        std::printf("[ui] touch state=%d press=%lu release=%lu x=%d y=%d\n",
+                    static_cast<int>(data->state),
+                    static_cast<unsigned long>(s_touch_press_count),
+                    static_cast<unsigned long>(s_touch_release_count),
+                    static_cast<int>(data->point.x),
+                    static_cast<int>(data->point.y));
+        s_touch_last_log = now;
+    }
+#endif
+}
+
+static void init_touch_indev() {
+    if (s_touch_indev) {
+        return;
+    }
+    s_touch_indev = lv_indev_create();
+    lv_indev_set_type(s_touch_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(s_touch_indev, touch_read_cb);
+    lv_indev_set_display(s_touch_indev, lv_display_get_default());
+}
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
@@ -137,14 +220,34 @@ void initialize() {
     load_auton_state();
 
     ui_root::init();
+    init_touch_indev();
     static pros::Task ui_task([] {
+        std::uint32_t last_ui = pros::millis();
         while (true) {
-            ui_root::update_fast();
-            pros::delay(100);
+            lv_tick_inc(kLvTickMs);
+            pros::c::display_mutex_take();
+            lv_timer_handler();
+            pros::c::display_mutex_give();
+
+            const std::uint32_t now = pros::millis();
+#if UI_TOUCH_DEBUG
+            if (now - s_lvgl_last_log >= 1000) {
+                std::printf("[ui] lvgl tick running press=%lu release=%lu x=%d y=%d\n",
+                            static_cast<unsigned long>(s_touch_press_count),
+                            static_cast<unsigned long>(s_touch_release_count),
+                            static_cast<int>(s_touch_last_x),
+                            static_cast<int>(s_touch_last_y));
+                s_lvgl_last_log = now;
+            }
+#endif
+            if (now - last_ui >= kUiUpdateMs) {
+                ui_root::update_fast();
+                last_ui = now;
+            }
+            pros::delay(kLvTickMs);
         }
     });
-            pros::delay(50);
-        }
+}
 void disabled() {
 
 }
