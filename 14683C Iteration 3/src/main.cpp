@@ -213,7 +213,7 @@ void initialize() {
     matchloader.set_value(false);
     wing.set_value(false);
     middescore.set_value(false);
-    midgoal.set_value(false);
+    midgoal.set_value(true);
     pros::delay(30);
     
     chassis.calibrate();
@@ -281,7 +281,7 @@ void opcontrol() {
 
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
-            outtake = -127;
+            outtake = 127;
             midgoal.set_value(true); 
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {

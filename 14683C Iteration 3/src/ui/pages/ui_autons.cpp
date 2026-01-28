@@ -8,7 +8,6 @@
 namespace ui_autons {
 namespace {
 lv_obj_t* s_root = nullptr;
-lv_obj_t* s_timer_label = nullptr;
 lv_obj_t* s_detail_title = nullptr;
 lv_obj_t* s_detail_desc = nullptr;
 lv_obj_t* s_detail_img = nullptr;
@@ -164,9 +163,6 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(top_center, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(top_center, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    s_timer_label =
-        ui_theme::make_label(top_center, "0:17", ui_theme::color_text(),
-                             ui_theme::font_title());
 
     lv_obj_t* top_right = lv_obj_create(top);
     set_transparent(top_right);
@@ -318,13 +314,8 @@ void set_detail(AutonId id) {
 }
 
 void update() {
-    if (!s_timer_label) {
+    if (!s_root) {
         return;
     }
-    const int total_sec = pros::millis() / 1000;
-    const int minutes = total_sec / 60;
-    const int seconds = total_sec % 60;
-    lv_label_set_text_fmt(s_timer_label, "%d:%02d", minutes, seconds);
-    update_lock_ui();
 }
 }

@@ -1,6 +1,8 @@
 #include "ui_odomcalib.hpp"
 
 #include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 #include "lemlib/api.hpp"
 #include "main.h"
@@ -12,23 +14,28 @@ extern lemlib::Chassis chassis;
 namespace ui_odomcalib {
 namespace {
 constexpr lv_coord_t kHeaderPillHeight = 34;
-constexpr lv_coord_t kButtonHeight = 48;
-constexpr lv_coord_t kBottomPanelHeight = 90;
+constexpr lv_coord_t kPosePanelWidth = 140;
+constexpr lv_coord_t kSidePanelWidth = 86;
+constexpr lv_coord_t kSideButtonHeight = 36;
+constexpr std::uint32_t kPoseUpdateMs = 100;
 
 lv_obj_t* s_root = nullptr;
 lv_obj_t* s_pose_x = nullptr;
 lv_obj_t* s_pose_y = nullptr;
-lv_obj_t* s_pose_z = nullptr;
 lv_obj_t* s_pose_theta = nullptr;
 lv_obj_t* s_left_dist = nullptr;
 lv_obj_t* s_right_dist = nullptr;
-lv_obj_t* s_status = nullptr;
 
 int s_left_offset = 0;
 int s_right_offset = 0;
-bool s_recalib_busy = false;
-bool s_done_pending = false;
-std::uint32_t s_done_time = 0;
+std::uint32_t s_last_pose_update = 0;
+char s_last_x[24] = "";
+char s_last_y[24] = "";
+char s_last_theta[24] = "";
+char s_last_left[24] = "";
+char s_last_right[24] = "";
+bool s_zero_pose_req = false;
+bool s_zero_imu_req = false;
 
 void set_transparent(lv_obj_t* obj) {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
@@ -65,33 +72,30 @@ lv_obj_t* make_title(lv_obj_t* parent, const char* text) {
                                 ui_theme::font_small());
 }
 
-void set_status(const char* text) {
-    if (s_status) {
-        lv_label_set_text(s_status, text);
+void set_label_cached(lv_obj_t* label, const char* text, char* cache,
+                      size_t cache_len) {
+    if (!label || !text) {
+        return;
     }
+    if (std::strncmp(cache, text, cache_len) == 0) {
+        return;
+    }
+    std::snprintf(cache, cache_len, "%s", text);
+    lv_label_set_text(label, cache);
 }
 
-void on_recalib(lv_event_t* e) {
+void on_zero_pose(lv_event_t* e) {
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
-    if (s_recalib_busy || s_done_pending) {
-        return;  // Debounce recalibration while running or cooling down.
+    s_zero_pose_req = true;
+}
+
+void on_zero_imu(lv_event_t* e) {
+    if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
+        return;
     }
-
-    s_recalib_busy = true;
-    set_status("RUNNING...");
-
-    chassis.setPose(0, 0, 0);
-    imu.tare_heading();
-
-    s_left_offset = leftDist.get();
-    s_right_offset = rightDist.get();
-
-    set_status("DONE");
-    s_done_time = pros::millis();
-    s_done_pending = true;
-    s_recalib_busy = false;
+    s_zero_imu_req = true;
 }
 }
 
@@ -113,21 +117,18 @@ lv_obj_t* build(lv_obj_t* parent) {
 
     lv_obj_t* pose = lv_obj_create(content);
     ui_theme::apply_panel(pose);
+    lv_obj_set_size(pose, kPosePanelWidth, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(pose, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_grow(pose, 1);
     lv_obj_set_style_pad_row(pose, ui_theme::kPadSm, LV_PART_MAIN);
 
     make_title(pose, "POSE");
-    s_pose_x = ui_theme::make_label(pose, "X: 0.00",
+    s_pose_x = ui_theme::make_label(pose, "X: 0.0",
                                     ui_theme::color_text(),
                                     ui_theme::font_body());
-    s_pose_y = ui_theme::make_label(pose, "Y: 0.00",
+    s_pose_y = ui_theme::make_label(pose, "Y: 0.0",
                                     ui_theme::color_text(),
                                     ui_theme::font_body());
-    s_pose_z = ui_theme::make_label(pose, "Z: N/A",
-                                    ui_theme::color_text_dim(),
-                                    ui_theme::font_body());
-    s_pose_theta = ui_theme::make_label(pose, "Theta: 0.00",
+    s_pose_theta = ui_theme::make_label(pose, "θ: 0.0°",
                                         ui_theme::color_text(),
                                         ui_theme::font_body());
 
@@ -145,26 +146,31 @@ lv_obj_t* build(lv_obj_t* parent) {
                                         ui_theme::color_text(),
                                         ui_theme::font_body());
 
-    lv_obj_t* bottom = lv_obj_create(s_root);
-    ui_theme::apply_panel(bottom);
-    lv_obj_set_height(bottom, kBottomPanelHeight);
-    lv_obj_set_width(bottom, LV_PCT(100));
-    lv_obj_set_flex_flow(bottom, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_row(bottom, ui_theme::kPadSm, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(bottom, ui_theme::kPadSm, LV_PART_MAIN);
+    lv_obj_t* side = lv_obj_create(content);
+    ui_theme::apply_panel(side);
+    lv_obj_set_width(side, kSidePanelWidth);
+    lv_obj_set_flex_flow(side, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(side, ui_theme::kPadSm, LV_PART_MAIN);
 
-    lv_obj_t* btn = lv_button_create(bottom);
-    ui_theme::apply_button(btn);
-    lv_obj_set_width(btn, LV_PCT(100));
-    lv_obj_set_height(btn, kButtonHeight);
-    lv_obj_add_event_cb(btn, on_recalib, LV_EVENT_CLICKED, nullptr);
-    lv_obj_t* btn_label =
-        ui_theme::make_label(btn, "RECALIBRATE", ui_theme::color_text(),
+    lv_obj_t* zero_btn = lv_button_create(side);
+    ui_theme::apply_button(zero_btn);
+    lv_obj_set_width(zero_btn, LV_PCT(100));
+    lv_obj_set_height(zero_btn, kSideButtonHeight);
+    lv_obj_add_event_cb(zero_btn, on_zero_pose, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* zero_label =
+        ui_theme::make_label(zero_btn, "ZERO", ui_theme::color_text(),
                              ui_theme::font_body());
-    lv_obj_center(btn_label);
+    lv_obj_center(zero_label);
 
-    s_status = ui_theme::make_label(bottom, "READY", ui_theme::color_text_dim(),
-                                    ui_theme::font_body());
+    lv_obj_t* imu_btn = lv_button_create(side);
+    ui_theme::apply_button(imu_btn);
+    lv_obj_set_width(imu_btn, LV_PCT(100));
+    lv_obj_set_height(imu_btn, kSideButtonHeight);
+    lv_obj_add_event_cb(imu_btn, on_zero_imu, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* imu_label =
+        ui_theme::make_label(imu_btn, "IMU 0", ui_theme::color_text(),
+                             ui_theme::font_body());
+    lv_obj_center(imu_label);
 
     update();
     return s_root;
@@ -174,21 +180,40 @@ void update() {
     if (!s_root) {
         return;
     }
+    const std::uint32_t now = pros::millis();
+    if (now - s_last_pose_update < kPoseUpdateMs) {
+        return;
+    }
+    s_last_pose_update = now;
 
-    if (s_done_pending &&
-        (pros::millis() - s_done_time) >= 1000) {
-        set_status("READY");
-        s_done_pending = false;
+    if (s_zero_pose_req) {
+        s_zero_pose_req = false;
+        leftMotors.move(0);
+        rightMotors.move(0);
+        chassis.setPose(0, 0, 0);
+        imu.tare_heading();
+        s_left_offset = leftDist.get();
+        s_right_offset = rightDist.get();
+    }
+    if (s_zero_imu_req) {
+        s_zero_imu_req = false;
+        imu.tare_heading();
     }
 
     const auto pose = chassis.getPose();
-    lv_label_set_text_fmt(s_pose_x, "X: %.2f", pose.x);
-    lv_label_set_text_fmt(s_pose_y, "Y: %.2f", pose.y);
-    lv_label_set_text_fmt(s_pose_theta, "Theta: %.2f", pose.theta);
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "X: %.1f", pose.x);
+    set_label_cached(s_pose_x, buf, s_last_x, sizeof(s_last_x));
+    std::snprintf(buf, sizeof(buf), "Y: %.1f", pose.y);
+    set_label_cached(s_pose_y, buf, s_last_y, sizeof(s_last_y));
+    std::snprintf(buf, sizeof(buf), "θ: %.1f°", pose.theta);
+    set_label_cached(s_pose_theta, buf, s_last_theta, sizeof(s_last_theta));
 
     const int left_mm = leftDist.get() - s_left_offset;
     const int right_mm = rightDist.get() - s_right_offset;
-    lv_label_set_text_fmt(s_left_dist, "Left: %dmm", left_mm);
-    lv_label_set_text_fmt(s_right_dist, "Right: %dmm", right_mm);
+    std::snprintf(buf, sizeof(buf), "Left: %dmm", left_mm);
+    set_label_cached(s_left_dist, buf, s_last_left, sizeof(s_last_left));
+    std::snprintf(buf, sizeof(buf), "Right: %dmm", right_mm);
+    set_label_cached(s_right_dist, buf, s_last_right, sizeof(s_last_right));
 }
 }

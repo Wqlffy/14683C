@@ -13,6 +13,13 @@ extern pros::Motor rightMotor1;
 extern pros::Motor rightMotor2;
 extern pros::Motor rightMotor3;
 
+extern pros::Motor leftFront;
+extern pros::Motor leftMid;
+extern pros::Motor leftBack;
+extern pros::Motor rightFront;
+extern pros::Motor rightMid;
+extern pros::Motor rightBack;
+
 extern pros::Motor intakeMotor;
 extern pros::Motor outtakeMotor;
 

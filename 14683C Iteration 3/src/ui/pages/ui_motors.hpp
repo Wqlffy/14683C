@@ -9,10 +9,7 @@ namespace ui_motors {
 enum class MotorMetric : uint8_t {
     Temp,
     Current,
-    Power,
-    Voltage,
-    Velocity,
-    Torque
+    Power
 };
 
 struct MotorEntry {

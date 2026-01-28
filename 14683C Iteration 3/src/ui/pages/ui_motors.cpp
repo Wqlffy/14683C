@@ -2,19 +2,24 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 #include "../ui_theme.hpp"
+#include "liblvgl/core/lv_obj_tree.h"
+#include "main.h"
 #include "robot_config.hpp"
 
 namespace ui_motors {
 namespace {
-constexpr size_t kMetricCount = 6;
+constexpr size_t kMetricCount = 3;
 constexpr size_t kMaxRows = 12;
 
-constexpr lv_coord_t kLeftColumnWidth = 200;
 constexpr lv_coord_t kButtonHeight = 40;
 constexpr lv_coord_t kHeaderPillHeight = 34;
 constexpr lv_coord_t kRowHeight = 32;
+constexpr lv_coord_t kTabBarHeight = 44;
 
 constexpr lv_coord_t kNameWidth = 140;
 constexpr lv_coord_t kValueWidth = 90;
@@ -22,10 +27,10 @@ constexpr lv_coord_t kUnitWidth = 60;
 
 constexpr uint32_t kWarnColor = 0xe0b84b;
 constexpr uint32_t kDangerColor = 0xe05858;
+constexpr std::uint32_t kUpdateMs = 100;
 
-const char* kMetricLabels[kMetricCount] = {
-    "TEMP", "CURRENT", "POWER", "VOLTAGE", "VELOCITY", "TORQUE"};
-const char* kMetricUnits[kMetricCount] = {"C", "A", "W", "V", "RPM", "NM"};
+const char* kMetricLabels[kMetricCount] = {"TEMP", "CURR", "PWR"};
+const char* kMetricUnits[kMetricCount] = {"C", "A", "W"};
 
 struct MotorRow {
     lv_obj_t* name;
@@ -44,17 +49,22 @@ MotorMetric s_metric = MotorMetric::Temp;
 lv_obj_t* s_root = nullptr;
 lv_obj_t* s_metric_buttons[kMetricCount] = {};
 lv_obj_t* s_header_value = nullptr;
+lv_obj_t* s_rows_container = nullptr;
 MotorRow s_rows[kMaxRows] = {};
 size_t s_row_count = 0;
+std::uint32_t s_last_update = 0;
+char s_last_header[8] = "";
+char s_last_values[kMaxRows][16] = {};
+char s_last_units[kMaxRows][8] = {};
 
 // Telemetry reads from hardware defined in robot_config.cpp.
 MotorEntry kMotorList[] = {
-    {"LF", &leftMotor1},
-    {"LM", &leftMotor2},
-    {"LB", &leftMotor3},
-    {"RF", &rightMotor1},
-    {"RM", &rightMotor2},
-    {"RB", &rightMotor3},
+    {"LF", &leftFront},
+    {"LM", &leftMid},
+    {"LB", &leftBack},
+    {"RF", &rightFront},
+    {"RM", &rightMid},
+    {"RB", &rightBack},
     {"INTAKE", &intakeMotor},
     {"OUTTAKE", &outtakeMotor},
 };
@@ -69,6 +79,18 @@ void set_transparent(lv_obj_t* obj) {
     lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);
+}
+
+void set_label_cached(lv_obj_t* label, const char* text, char* cache,
+                      size_t cache_len) {
+    if (!label || !text) {
+        return;
+    }
+    if (std::strncmp(cache, text, cache_len) == 0) {
+        return;
+    }
+    std::snprintf(cache, cache_len, "%s", text);
+    lv_label_set_text(label, cache);
 }
 
 lv_obj_t* make_header_pill(lv_obj_t* parent, const char* text) {
@@ -119,27 +141,7 @@ MetricValue read_metric(const MotorEntry& entry, MotorMetric metric) {
             break;
         }
         case MotorMetric::Power: {
-            const double current_a = entry.motor->get_current_draw() / 1000.0;
-            const double voltage_v = entry.motor->get_voltage() / 1000.0;
-            out.value = current_a * voltage_v;
-            out.unit = kMetricUnits[static_cast<size_t>(metric)];
-            out.format = "%.2f";
-            break;
-        }
-        case MotorMetric::Voltage: {
-            out.value = entry.motor->get_voltage() / 1000.0;
-            out.unit = kMetricUnits[static_cast<size_t>(metric)];
-            out.format = "%.2f";
-            break;
-        }
-        case MotorMetric::Velocity: {
-            out.value = entry.motor->get_actual_velocity();
-            out.unit = kMetricUnits[static_cast<size_t>(metric)];
-            out.format = "%.0f";
-            break;
-        }
-        case MotorMetric::Torque: {
-            out.value = entry.motor->get_torque();
+            out.value = entry.motor->get_power();
             out.unit = kMetricUnits[static_cast<size_t>(metric)];
             out.format = "%.2f";
             break;
@@ -162,8 +164,9 @@ void update_header() {
     if (!s_header_value) {
         return;
     }
-    lv_label_set_text(s_header_value,
-                      kMetricLabels[static_cast<size_t>(s_metric)]);
+    set_label_cached(s_header_value,
+                     kMetricLabels[static_cast<size_t>(s_metric)],
+                     s_last_header, sizeof(s_last_header));
 }
 
 void set_metric(MotorMetric metric) {
@@ -174,6 +177,9 @@ void set_metric(MotorMetric metric) {
 }
 
 void on_metric_event(lv_event_t* e) {
+    if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
+        return;
+    }
     const intptr_t raw = reinterpret_cast<intptr_t>(lv_event_get_user_data(e));
     const auto metric = static_cast<MotorMetric>(raw);
     set_metric(metric);
@@ -191,28 +197,30 @@ lv_obj_t* build(lv_obj_t* parent) {
     // Header pill
     make_header_pill(s_root, "MOTORS");
 
-    // Two-column content area
     lv_obj_t* content = lv_obj_create(s_root);
     set_transparent(content);
-    lv_obj_set_style_pad_column(content, ui_theme::kPad, LV_PART_MAIN);
-    lv_obj_set_flex_flow(content, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_flow(content, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(content, 1);
     lv_obj_set_width(content, LV_PCT(100));
+    lv_obj_set_height(content, LV_PCT(100));
 
-    // Left column: metric selector
-    lv_obj_t* mode_panel = lv_obj_create(content);
-    ui_theme::apply_panel(mode_panel);
-    lv_obj_remove_flag(mode_panel, LV_OBJ_FLAG_SCROLLABLE);  // Keep scrolling in the table only.
-    lv_obj_set_scroll_dir(mode_panel, LV_DIR_NONE);
-    lv_obj_set_width(mode_panel, kLeftColumnWidth);
-    lv_obj_set_flex_flow(mode_panel, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_row(mode_panel, ui_theme::kPadSm, LV_PART_MAIN);
+    lv_obj_t* tab_bar = lv_obj_create(content);
+    ui_theme::apply_panel(tab_bar);
+    lv_obj_set_height(tab_bar, kTabBarHeight);
+    lv_obj_set_width(tab_bar, LV_PCT(100));
+    lv_obj_set_flex_flow(tab_bar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_column(tab_bar, ui_theme::kPadSm, LV_PART_MAIN);
+    lv_obj_set_flex_align(tab_bar, LV_FLEX_ALIGN_SPACE_BETWEEN,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(tab_bar, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(tab_bar, LV_OBJ_FLAG_CLICKABLE);
 
     for (size_t i = 0; i < kMetricCount; ++i) {
-        lv_obj_t* btn = lv_button_create(mode_panel);
+        lv_obj_t* btn = lv_button_create(tab_bar);
         ui_theme::apply_button(btn);
-        lv_obj_set_width(btn, LV_PCT(100));
+        lv_obj_set_flex_grow(btn, 1);
         lv_obj_set_height(btn, kButtonHeight);
+        lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_event_cb(btn, on_metric_event, LV_EVENT_CLICKED,
                             reinterpret_cast<void*>(static_cast<intptr_t>(i)));
 
@@ -223,15 +231,17 @@ lv_obj_t* build(lv_obj_t* parent) {
         s_metric_buttons[i] = btn;
     }
 
-    // Right column: motor table
+    lv_obj_move_to_index(tab_bar,-1);
+
     lv_obj_t* table_panel = lv_obj_create(content);
     ui_theme::apply_panel(table_panel);
-    lv_obj_remove_flag(table_panel, LV_OBJ_FLAG_SCROLLABLE);  // Avoid parent scroll conflicts.
+    lv_obj_remove_flag(table_panel, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(table_panel, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_scroll_dir(table_panel, LV_DIR_NONE);
     lv_obj_set_flex_flow(table_panel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(table_panel, 1);
     lv_obj_set_width(table_panel, LV_PCT(100));
-    lv_obj_set_height(table_panel, LV_PCT(100));  // Fix height so the rows area can scroll.
+    lv_obj_set_height(table_panel, 0);
     lv_obj_set_style_pad_row(table_panel, ui_theme::kPadSm, LV_PART_MAIN);
 
     lv_obj_t* header = lv_obj_create(table_panel);
@@ -258,23 +268,24 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_width(header_unit, kUnitWidth);
     lv_obj_set_style_text_align(header_unit, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
-    lv_obj_t* rows = lv_obj_create(table_panel);
-    set_transparent(rows);
-    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLLABLE);  // Re-enable scrolling on the motor rows container.
-    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLL_MOMENTUM);
-    lv_obj_add_flag(rows,LV_OBJ_FLAG_SCROLL_ELASTIC);
-    lv_obj_add_flag(rows, LV_OBJ_FLAG_SCROLL_CHAIN);  // Allow drag scroll on rows.
-    lv_obj_set_scroll_dir(rows, LV_DIR_VER);  // Vertical scroll for motor rows.
-    lv_obj_set_scrollbar_mode(rows, LV_SCROLLBAR_MODE_AUTO);  // Scrollbar only when needed.
-    lv_obj_set_style_pad_row(rows, ui_theme::kPadSm, LV_PART_MAIN);
-    lv_obj_set_flex_flow(rows, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(rows, LV_PCT(100));
-    lv_obj_set_height(rows, 0);  // Constrain height so rows can actually scroll.
-    lv_obj_set_flex_grow(rows, 1);
+    s_rows_container = lv_obj_create(table_panel);
+    set_transparent(s_rows_container);
+    lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_set_scroll_dir(s_rows_container, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(s_rows_container, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_set_style_pad_row(s_rows_container, ui_theme::kPadSm, LV_PART_MAIN);
+    lv_obj_set_flex_flow(s_rows_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_width(s_rows_container, LV_PCT(100));
+    lv_obj_set_height(s_rows_container, 0);
+    lv_obj_set_flex_grow(s_rows_container, 1);
 
     s_row_count = std::min(s_motor_count, kMaxRows);
+    static int created_rows = 0;
     for (size_t i = 0; i < s_row_count; ++i) {
-        lv_obj_t* row = lv_obj_create(rows);
+        lv_obj_t* row = lv_obj_create(s_rows_container);
         lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_style_bg_color(row, ui_theme::color_panel_alt(),
                                   LV_PART_MAIN);
@@ -308,6 +319,9 @@ lv_obj_t* build(lv_obj_t* parent) {
         lv_obj_set_width(s_rows[i].unit, kUnitWidth);
         lv_obj_set_style_text_align(s_rows[i].unit, LV_TEXT_ALIGN_RIGHT,
                                     LV_PART_MAIN);
+        lv_label_set_text(s_rows[i].unit, "C");
+        ++created_rows;
+        pros::lcd::print(1, "rows=%d", created_rows);
     }
 
     set_metric(s_metric);
@@ -319,15 +333,24 @@ void update() {
     if (!s_root) {
         return;
     }
+    const std::uint32_t now = pros::millis();
+    if (now - s_last_update < kUpdateMs) {
+        return;
+    }
+    s_last_update = now;
 
-    lv_label_set_text_fmt(s_header_value, "T=%lu", pros::millis());  // TEMP: heartbeat to prove update loop; remove after confirmation.
+    set_label_cached(s_header_value, kMetricLabels[static_cast<size_t>(s_metric)],
+                     s_last_header, sizeof(s_last_header));
 
+    char buf[16];
     for (size_t i = 0; i < s_row_count; ++i) {
         const MotorEntry& entry = s_motors[i];
         const MetricValue metric = read_metric(entry, s_metric);
-
-        lv_label_set_text_fmt(s_rows[i].value, metric.format, metric.value);
-        lv_label_set_text(s_rows[i].unit, metric.unit);
+        std::snprintf(buf, sizeof(buf), metric.format, metric.value);
+        set_label_cached(s_rows[i].value, buf, s_last_values[i],
+                         sizeof(s_last_values[i]));
+        set_label_cached(s_rows[i].unit, metric.unit, s_last_units[i],
+                         sizeof(s_last_units[i]));
         lv_obj_set_style_text_color(s_rows[i].value, metric.color, LV_PART_MAIN);
     }
 }

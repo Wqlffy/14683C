@@ -2,8 +2,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 #include "liblvgl/lvgl.h"
+#include "main.h"
 #include "pages/ui_autons.hpp"
 #include "pages/ui_motors.hpp"
 #include "pages/ui_sensors.hpp"
@@ -119,6 +121,14 @@ void init() {
 void update_fast() {
     if (!s_inited) {
         return;
+    }
+    static int ui_alive = 0;
+    static std::uint32_t last_alive_log = 0;
+    const std::uint32_t now = pros::millis();
+    ++ui_alive;
+    if (now - last_alive_log >= 1000) {
+        last_alive_log = now;
+        std::printf("UI ALIVE: %d\n", ui_alive);
     }
     pros::c::display_mutex_take();  // Fix: guard LVGL label updates from the UI task.
     switch (s_active) {

@@ -4,12 +4,12 @@
 pros::MotorGroup leftMotors({-11, -12, -14}, pros::MotorGearset::blue);
 pros::MotorGroup rightMotors({20, 19, 18}, pros::MotorGearset::blue);
 
-pros::Motor leftMotor1(-11, pros::MotorGearset::blue);
-pros::Motor leftMotor2(-12, pros::MotorGearset::blue);
-pros::Motor leftMotor3(-14, pros::MotorGearset::blue);
-pros::Motor rightMotor1(20, pros::MotorGearset::blue);
-pros::Motor rightMotor2(19, pros::MotorGearset::blue);
-pros::Motor rightMotor3(18, pros::MotorGearset::blue);
+pros::Motor leftFront(-11, pros::MotorGearset::blue);
+pros::Motor leftMid(-12, pros::MotorGearset::blue);
+pros::Motor leftBack(-14, pros::MotorGearset::blue);
+pros::Motor rightFront(20, pros::MotorGearset::blue);
+pros::Motor rightMid(19, pros::MotorGearset::blue);
+pros::Motor rightBack(18, pros::MotorGearset::blue);
 
 pros::Motor intakeMotor(15, pros::MotorGearset::blue);
 pros::Motor outtakeMotor(3, pros::MotorGearset::blue);
