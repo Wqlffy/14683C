@@ -9,4 +9,5 @@ void auton_9_long_red_right();
 void auton_awp_blue_right();
 void auton_awp_red_right();
 void calibration_auton();
+void auton_skills();
 void skills_auton();

@@ -459,5 +459,5 @@ void auton_awp_red_right() {
 }
 
 void skills_auton() {
-    // TODO: implement skills auton.
+    auton_skills();
 }

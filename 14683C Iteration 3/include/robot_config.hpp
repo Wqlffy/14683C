@@ -13,6 +13,7 @@ extern pros::Motor rightMotor1;
 extern pros::Motor rightMotor2;
 extern pros::Motor rightMotor3;
 
+// Individual drivetrain motors for per-motor telemetry.
 extern pros::Motor leftFront;
 extern pros::Motor leftMid;
 extern pros::Motor leftBack;

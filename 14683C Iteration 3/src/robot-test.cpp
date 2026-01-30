@@ -40,6 +40,11 @@
 
 extern lemlib::Chassis chassis;
 
+// Wire calibration measurements to LemLib odometry.
+#define CAL_GET_POSE_X() (static_cast<double>(chassis.getPose(false).x))
+#define CAL_GET_POSE_Y() (static_cast<double>(chassis.getPose(false).y))
+#define CAL_GET_POSE_H() (static_cast<double>(chassis.getPose(false).theta))
+
 // Move/turn commands are generated from your current Export templates for this style.
 // Define these macros to match your project (optional):
 //   CAL_SET_PROFILE(name)         -> set drive profile

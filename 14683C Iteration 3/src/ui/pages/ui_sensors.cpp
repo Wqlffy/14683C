@@ -77,7 +77,7 @@ lv_obj_t* make_title(lv_obj_t* parent, const char* text) {
                                 ui_theme::font_small());
 }
 
-#define SENSORS_DEBUG 1
+#define SENSORS_DEBUG 0
 }
 
 lv_obj_t* build(lv_obj_t* parent) {

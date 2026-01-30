@@ -5,8 +5,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 
 #include "../ui_theme.hpp"
+#include "liblvgl/core/lv_obj.h"
+#include "liblvgl/core/lv_obj_pos.h"
 #include "liblvgl/core/lv_obj_tree.h"
 #include "main.h"
 #include "robot_config.hpp"
@@ -27,6 +30,7 @@ constexpr lv_coord_t kUnitWidth = 60;
 
 constexpr uint32_t kWarnColor = 0xe0b84b;
 constexpr uint32_t kDangerColor = 0xe05858;
+constexpr uint32_t kOverTempBg = 0x331010;
 constexpr std::uint32_t kUpdateMs = 100;
 
 const char* kMetricLabels[kMetricCount] = {"TEMP", "CURR", "PWR"};
@@ -47,12 +51,14 @@ struct MetricValue {
 
 MotorMetric s_metric = MotorMetric::Temp;
 lv_obj_t* s_root = nullptr;
+lv_obj_t* s_debug_label = nullptr;
 lv_obj_t* s_metric_buttons[kMetricCount] = {};
 lv_obj_t* s_header_value = nullptr;
 lv_obj_t* s_rows_container = nullptr;
 MotorRow s_rows[kMaxRows] = {};
 size_t s_row_count = 0;
 std::uint32_t s_last_update = 0;
+bool s_refresh_pending = true;
 char s_last_header[8] = "";
 char s_last_values[kMaxRows][16] = {};
 char s_last_units[kMaxRows][8] = {};
@@ -72,6 +78,20 @@ constexpr size_t kMotorCount = sizeof(kMotorList) / sizeof(kMotorList[0]);
 
 const MotorEntry* s_motors = kMotorList;
 size_t s_motor_count = kMotorCount;
+
+void reset_state() {
+    s_root = nullptr;
+    s_debug_label = nullptr;
+    s_header_value = nullptr;
+    s_rows_container = nullptr;
+    s_row_count = 0;
+    std::fill(std::begin(s_metric_buttons), std::end(s_metric_buttons),
+              nullptr);
+    std::memset(s_rows, 0, sizeof(s_rows));
+    std::memset(s_last_header, 0, sizeof(s_last_header));
+    std::memset(s_last_values, 0, sizeof(s_last_values));
+    std::memset(s_last_units, 0, sizeof(s_last_units));
+}
 
 void set_transparent(lv_obj_t* obj) {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
@@ -171,9 +191,7 @@ void update_header() {
 
 void set_metric(MotorMetric metric) {
     s_metric = metric;
-    update_buttons();
-    update_header();
-    update();
+    s_refresh_pending = true;
 }
 
 void on_metric_event(lv_event_t* e) {
@@ -184,11 +202,25 @@ void on_metric_event(lv_event_t* e) {
     const auto metric = static_cast<MotorMetric>(raw);
     set_metric(metric);
 }
+
+void on_root_deleted(lv_event_t* e) {
+    (void)e;
+    reset_state();
+}
 }
 
 lv_obj_t* build(lv_obj_t* parent) {
-    // Root container
+    if (s_root) {
+        if (lv_obj_is_valid(s_root)) {
+            return s_root;
+        }
+        reset_state();
+    }
+
+    s_row_count = std::min(s_motor_count, kMaxRows);
+
     s_root = lv_obj_create(parent);
+    lv_obj_add_event_cb(s_root, on_root_deleted, LV_EVENT_DELETE, nullptr);
     lv_obj_set_size(s_root, LV_PCT(100), LV_PCT(100));
     set_transparent(s_root);
     lv_obj_set_style_pad_row(s_root, ui_theme::kPad, LV_PART_MAIN);
@@ -202,7 +234,6 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(content, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(content, 1);
     lv_obj_set_width(content, LV_PCT(100));
-    lv_obj_set_height(content, LV_PCT(100));
 
     lv_obj_t* tab_bar = lv_obj_create(content);
     ui_theme::apply_panel(tab_bar);
@@ -231,8 +262,6 @@ lv_obj_t* build(lv_obj_t* parent) {
         s_metric_buttons[i] = btn;
     }
 
-    lv_obj_move_to_index(tab_bar,-1);
-
     lv_obj_t* table_panel = lv_obj_create(content);
     ui_theme::apply_panel(table_panel);
     lv_obj_remove_flag(table_panel, LV_OBJ_FLAG_SCROLLABLE);
@@ -241,8 +270,9 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_flex_flow(table_panel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_grow(table_panel, 1);
     lv_obj_set_width(table_panel, LV_PCT(100));
-    lv_obj_set_height(table_panel, 0);
     lv_obj_set_style_pad_row(table_panel, ui_theme::kPadSm, LV_PART_MAIN);
+
+    lv_obj_set_style_min_height(table_panel, 120, 0);
 
     lv_obj_t* header = lv_obj_create(table_panel);
     set_transparent(header);
@@ -269,7 +299,6 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_style_text_align(header_unit, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
 
     s_rows_container = lv_obj_create(table_panel);
-    set_transparent(s_rows_container);
     lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLL_MOMENTUM);
     lv_obj_add_flag(s_rows_container, LV_OBJ_FLAG_SCROLL_ELASTIC);
@@ -278,12 +307,13 @@ lv_obj_t* build(lv_obj_t* parent) {
     lv_obj_set_scrollbar_mode(s_rows_container, LV_SCROLLBAR_MODE_AUTO);
     lv_obj_set_style_pad_row(s_rows_container, ui_theme::kPadSm, LV_PART_MAIN);
     lv_obj_set_flex_flow(s_rows_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_height(s_rows_container, 220);
     lv_obj_set_width(s_rows_container, LV_PCT(100));
-    lv_obj_set_height(s_rows_container, 0);
-    lv_obj_set_flex_grow(s_rows_container, 1);
 
-    s_row_count = std::min(s_motor_count, kMaxRows);
-    static int created_rows = 0;
+    lv_obj_set_style_min_height(s_rows_container, 80, 0);
+
+    lv_obj_update_layout(s_rows_container);
+
     for (size_t i = 0; i < s_row_count; ++i) {
         lv_obj_t* row = lv_obj_create(s_rows_container);
         lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
@@ -320,38 +350,108 @@ lv_obj_t* build(lv_obj_t* parent) {
         lv_obj_set_style_text_align(s_rows[i].unit, LV_TEXT_ALIGN_RIGHT,
                                     LV_PART_MAIN);
         lv_label_set_text(s_rows[i].unit, "C");
-        ++created_rows;
-        pros::lcd::print(1, "rows=%d", created_rows);
     }
 
+    lv_obj_update_layout(s_rows_container);
+    lv_obj_update_layout(s_root);
     set_metric(s_metric);
     update();
     return s_root;
 }
 
 void update() {
-    if (!s_root) {
+    if (!s_root || !lv_obj_is_valid(s_root)) {
         return;
     }
+    if (!s_rows_container || !s_header_value || !s_motors) {
+        return;
+    }
+    if (!lv_obj_is_valid(s_rows_container) ||
+        !lv_obj_is_valid(s_header_value)) {
+        return;
+    }
+    if (s_row_count == 0) {
+        return;
+    }
+
     const std::uint32_t now = pros::millis();
-    if (now - s_last_update < kUpdateMs) {
+    if (now - s_last_update < kUpdateMs && !s_refresh_pending) {
         return;
     }
     s_last_update = now;
 
-    set_label_cached(s_header_value, kMetricLabels[static_cast<size_t>(s_metric)],
-                     s_last_header, sizeof(s_last_header));
+    if (s_refresh_pending) {
+        update_buttons();
+        update_header();
+        s_refresh_pending = false;
+    }
 
     char buf[16];
-    for (size_t i = 0; i < s_row_count; ++i) {
+    const size_t row_limit = std::min(s_row_count, kMaxRows);
+    for (size_t i = 0; i < row_limit; ++i) {
         const MotorEntry& entry = s_motors[i];
-        const MetricValue metric = read_metric(entry, s_metric);
-        std::snprintf(buf, sizeof(buf), metric.format, metric.value);
-        set_label_cached(s_rows[i].value, buf, s_last_values[i],
-                         sizeof(s_last_values[i]));
-        set_label_cached(s_rows[i].unit, metric.unit, s_last_units[i],
-                         sizeof(s_last_units[i]));
-        lv_obj_set_style_text_color(s_rows[i].value, metric.color, LV_PART_MAIN);
+        lv_obj_t* name = s_rows[i].name;
+        lv_obj_t* value = s_rows[i].value;
+        lv_obj_t* unit = s_rows[i].unit;
+        if (!name || !value || !unit) {
+            continue;
+        }
+        if (!lv_obj_is_valid(name) || !lv_obj_is_valid(value) ||
+            !lv_obj_is_valid(unit)) {
+            continue;
+        }
+        lv_obj_t* row = lv_obj_get_parent(name);
+        if (!row || !lv_obj_is_valid(row)) {
+            continue;
+        }
+        if (s_metric == MotorMetric::Temp) {
+            const double temp_c = entry.motor->get_temperature();
+            const bool over_temp = entry.motor->is_over_temp();
+            const bool over_current = entry.motor->is_over_current();
+            const int current_limit = entry.motor->get_current_limit();
+
+            std::snprintf(buf, sizeof(buf), "%.1f", temp_c);
+            set_label_cached(value, buf, s_last_values[i],
+                             sizeof(s_last_values[i]));
+            set_label_cached(unit, over_current ? "C OC" : "C",
+                             s_last_units[i], sizeof(s_last_units[i]));
+
+            const lv_color_t text_color =
+                over_temp ? lv_color_hex(kDangerColor)
+                          : (over_current ? lv_color_hex(kWarnColor)
+                                          : ui_theme::color_text());
+            lv_obj_set_style_text_color(name, text_color,
+                                        LV_PART_MAIN);
+            lv_obj_set_style_text_color(value, text_color,
+                                        LV_PART_MAIN);
+            lv_obj_set_style_text_color(unit, text_color,
+                                        LV_PART_MAIN);
+
+            lv_obj_set_style_bg_color(
+                row,
+                over_temp ? lv_color_hex(kOverTempBg)
+                          : ui_theme::color_panel_alt(),
+                LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_PART_MAIN);
+
+            (void)current_limit;
+        } else {
+            const MetricValue metric = read_metric(entry, s_metric);
+            std::snprintf(buf, sizeof(buf), metric.format, metric.value);
+            set_label_cached(value, buf, s_last_values[i],
+                             sizeof(s_last_values[i]));
+            set_label_cached(unit, metric.unit, s_last_units[i],
+                             sizeof(s_last_units[i]));
+            lv_obj_set_style_text_color(value, metric.color,
+                                        LV_PART_MAIN);
+            lv_obj_set_style_text_color(name, ui_theme::color_text(),
+                                        LV_PART_MAIN);
+            lv_obj_set_style_text_color(unit, ui_theme::color_text(),
+                                        LV_PART_MAIN);
+            lv_obj_set_style_bg_color(row, ui_theme::color_panel_alt(),
+                                      LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_PART_MAIN);
+        }
     }
 }
 }

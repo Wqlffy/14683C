@@ -26,8 +26,6 @@ lv_obj_t* s_pose_theta = nullptr;
 lv_obj_t* s_left_dist = nullptr;
 lv_obj_t* s_right_dist = nullptr;
 
-int s_left_offset = 0;
-int s_right_offset = 0;
 std::uint32_t s_last_pose_update = 0;
 char s_last_x[24] = "";
 char s_last_y[24] = "";
@@ -192,8 +190,6 @@ void update() {
         rightMotors.move(0);
         chassis.setPose(0, 0, 0);
         imu.tare_heading();
-        s_left_offset = leftDist.get();
-        s_right_offset = rightDist.get();
     }
     if (s_zero_imu_req) {
         s_zero_imu_req = false;
@@ -209,8 +205,8 @@ void update() {
     std::snprintf(buf, sizeof(buf), "θ: %.1f°", pose.theta);
     set_label_cached(s_pose_theta, buf, s_last_theta, sizeof(s_last_theta));
 
-    const int left_mm = leftDist.get() - s_left_offset;
-    const int right_mm = rightDist.get() - s_right_offset;
+    const int left_mm = leftDist.get();
+    const int right_mm = rightDist.get();
     std::snprintf(buf, sizeof(buf), "Left: %dmm", left_mm);
     set_label_cached(s_left_dist, buf, s_last_left, sizeof(s_last_left));
     std::snprintf(buf, sizeof(buf), "Right: %dmm", right_mm);

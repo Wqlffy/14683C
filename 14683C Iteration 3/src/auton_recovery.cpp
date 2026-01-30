@@ -4,7 +4,10 @@
 #include <cmath>
 #include <cstdio>
 
+#include "lemlib/api.hpp"
 #include "robot_config.hpp"
+
+extern lemlib::Chassis chassis;
 
 namespace AutonRecovery {
 namespace {
@@ -369,6 +372,37 @@ bool driveDistanceHeading(double inches,
 
     set_drive(0.0, 0.0);
     return false;
+}
+
+bool wallReset(const WallResetParams& p) {
+    bool left_valid = distValidMm(leftDist.get());
+    bool right_valid = distValidMm(rightDist.get());
+
+    // TODO(HAS_FRONT_DIST): optionally square against front wall sensors when present.
+#if defined(HAS_FRONT_DIST)
+    // Placeholder for future front distance sensors (e.g. frontDistLeft/frontDistRight).
+#endif
+
+    if (p.trySquare && left_valid && right_valid) {
+        wallSquare(p.squareTimeoutMs, p.tolMm, p.maxTurn);
+        left_valid = distValidMm(leftDist.get());
+        right_valid = distValidMm(rightDist.get());
+    }
+
+    bool ok = false;
+    if (left_valid && p.leftTargetMm > 0.0) {
+        ok = snapLeftToWall(p.leftTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
+                            p.tolMm, p.maxFwd);
+    } else if (right_valid && p.rightTargetMm > 0.0) {
+        ok = snapRightToWall(p.rightTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
+                             p.tolMm, p.maxFwd);
+    } else {
+        chassis.turnToHeading(p.faceHeadingDeg, 450);
+        return false;
+    }
+
+    stabilize(120);
+    return ok;
 }
 
 RecoverResult recoverAfterContact(double desiredWallDistMm,

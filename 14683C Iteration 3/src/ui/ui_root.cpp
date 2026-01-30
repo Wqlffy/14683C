@@ -32,15 +32,13 @@ void display_mutex_give(void) { lv_unlock(); }
 
 namespace ui_root {
 namespace {
-    enum class PageId : uint8_t { Autons, Motors, Sensors, Odom };
-
 constexpr size_t kPageCount = 4;
 lv_obj_t* s_pages[kPageCount] = {};
 lv_obj_t* s_nav_buttons[kPageCount] = {};
-PageId s_active = PageId::Autons;
+Page s_active = Page::Autons;
 bool s_inited = false;
 
-void show_page(PageId id) {
+void show_page(Page id) {
     s_active = id;
     for (size_t i = 0; i < kPageCount; ++i) {
         const bool active = (i == static_cast<size_t>(id));
@@ -59,7 +57,7 @@ void show_page(PageId id) {
 
 void on_nav_event(lv_event_t* e) {
     const intptr_t raw = reinterpret_cast<intptr_t>(lv_event_get_user_data(e));
-    const auto id = static_cast<PageId>(raw);
+    const auto id = static_cast<Page>(raw);
     show_page(id);
 }
 }
@@ -113,7 +111,7 @@ void init() {
     s_pages[2] = ui_sensors::build(content);
     s_pages[3] = ui_odomcalib::build(content);
 
-    show_page(PageId::Autons);
+    show_page(Page::Autons);
     s_inited = true;
     pros::c::display_mutex_give();  // Release display mutex after LVGL init work.
 }
@@ -122,29 +120,27 @@ void update_fast() {
     if (!s_inited) {
         return;
     }
-    static int ui_alive = 0;
-    static std::uint32_t last_alive_log = 0;
     const std::uint32_t now = pros::millis();
-    ++ui_alive;
-    if (now - last_alive_log >= 1000) {
-        last_alive_log = now;
-        std::printf("UI ALIVE: %d\n", ui_alive);
-    }
-    pros::c::display_mutex_take();  // Fix: guard LVGL label updates from the UI task.
+    pros::c::display_mutex_take();  // Guard all LVGL operations in UI task.
+    lv_timer_handler();
     switch (s_active) {
-        case PageId::Autons:
+        case Page::Autons:
             ui_autons::update();
             break;
-        case PageId::Motors:
+        case Page::Motors:
             ui_motors::update();
             break;
-        case PageId::Sensors:
+        case Page::Sensors:
             ui_sensors::update();
             break;
-        case PageId::Odom:
+        case Page::Odom:
             ui_odomcalib::update();
             break;
     }
     pros::c::display_mutex_give();  // Allow LVGL's own task to resume safely.
+}
+
+Page active_page() {
+    return s_active;
 }
 }
