@@ -5,7 +5,9 @@
 #include "auton_recovery.hpp"
 #include "robot_config.hpp"
 #include "auton_recovery.hpp"
+#if __has_include(<sys/_intsup.h>)
 #include <sys/_intsup.h>
+#endif
 
 extern lemlib::Chassis chassis;
 
@@ -19,6 +21,8 @@ ASSET(seg1R_txt);
 ASSET(seg2R_txt);
 ASSET(seg3R_txt);
 ASSET(seg7R_txt);
+ASSET(skills91_2_txt);
+ASSET(skills91_6_txt);
 
 void auton_43_blue_left() {
     chassis.setPose(-48.000000, 6.000000, 0.000000);
@@ -61,7 +65,7 @@ void auton_43_blue_left() {
     matchloader.retract();
     chassis.waitUntil(14.578923);
     midgoal.extend();
-    outtakeMotor.move(127);
+    outtakeMotor.move(-127);
     chassis.waitUntilDone();
     intakeMotor.move(0);
     outtakeMotor.move(0);
@@ -108,7 +112,7 @@ void auton_43_red_left() {
     matchloader.retract();
     chassis.waitUntil(14.578923);
     midgoal.extend();
-    outtakeMotor.move(127);
+    outtakeMotor.move(-127);
     chassis.waitUntilDone();
     intakeMotor.move(0);
     outtakeMotor.move(0);
@@ -170,7 +174,6 @@ void auton_9_long_blue_left() {
 void auton_9_long_blue_right() {
     chassis.setPose(-62.640000, -17.040000, 0.000000);
 
-    chassis.turnToHeading(90.0, 767);
     chassis.moveToPoint(-48.0, -17.04, 850);
     pros::delay(50);
     chassis.turnToHeading(105.215438, 509);
@@ -279,7 +282,6 @@ void auton_9_long_red_left() {
 void auton_9_long_red_right() {
     chassis.setPose(-62.640000, -17.040000, 0.000000);
 
-    chassis.turnToHeading(90.0, 767);
     chassis.moveToPoint(-48.0, -17.04, 850);
     pros::delay(50);
     chassis.turnToHeading(105.215438, 509);
@@ -372,15 +374,15 @@ void auton_awp_blue_right() {
     chassis.waitUntil(4.919246);
     matchloader.retract();
     chassis.waitUntil(15.104754);
-    outtakeMotor.move(127);
-    midgoal.extend();
+    outtakeMotor.move(-127);
+    midgoal.retract();
     chassis.waitUntilDone();
     pros::delay(1000);
     outtakeMotor.move(0);
-    midgoal.retract();
+    midgoal.extend();
     chassis.moveToPoint(-48.0, 48.0, 1522);
     chassis.waitUntil(5.430548);
-    midgoal.retract();
+    midgoal.extend();
     chassis.waitUntilDone();
     pros::delay(50);
     chassis.turnToHeading(270.0, 602);
@@ -435,15 +437,15 @@ void auton_awp_red_right() {
     chassis.waitUntil(4.919246);
     matchloader.retract();
     chassis.waitUntil(15.104754);
-    outtakeMotor.move(127);
-    midgoal.extend();
+    outtakeMotor.move(-127);
+    midgoal.retract();
     chassis.waitUntilDone();
     pros::delay(1000);
     outtakeMotor.move(0);
-    midgoal.retract();
+    midgoal.extend();
     chassis.moveToPoint(-48.0, 48.0, 1522);
     chassis.waitUntil(5.430548);
-    midgoal.retract();
+    midgoal.extend();
     chassis.waitUntilDone();
     pros::delay(50);
     chassis.turnToHeading(270.0, 602);
@@ -461,3 +463,163 @@ void auton_awp_red_right() {
 void skills_auton() {
     auton_skills();
 }
+
+// void test_91() {
+//     chassis.setPose(-50.400000, 12.720000, 90.000000);
+
+//     chassis.turnToHeading(27.85293, 670);
+//     chassis.moveToPose(-56.750187, 47.924576, 270.0, 1466, {.lead = 0.7});
+//     chassis.waitUntil(18.571491);
+//     matchloader.extend();
+//     chassis.waitUntil(32.769549);
+//     intakeMotor.move(127);
+//     chassis.waitUntilDone();
+//     pros::delay(2000);
+//     chassis.moveToPoint(-48.0, 48.0, 760, {.forwards = false});
+//     pros::delay(50);
+//     matchloader.retract();
+//     chassis.turnToHeading(139.490614, 853);
+//     chassis.follow(skills91_2_txt, 2685, 6.56257);
+//     chassis.waitUntil(26.870328);
+//     matchloader.extend();
+//     chassis.waitUntilDone();
+//     pros::delay(50);
+//     intakeMotor.move(127);
+//     chassis.turnToHeading(270.0, 705);
+//     chassis.moveToPoint(-31.0, -48.0, 706, {.forwards = false});
+//     outtakeMotor.move(127);
+//     pros::delay(3000);
+//     outtakeMotor.move(0);
+//     chassis.moveToPoint(-56.75, -48.0, 1088);
+//     intakeMotor.move(127);
+//     pros::delay(2000);
+//     chassis.moveToPoint(-48.0, -48.0, 760, {.forwards = false});
+//     pros::delay(50);
+//     matchloader.retract();
+//     chassis.turnToHeading(39.573434, 852);
+//     chassis.follow(skills91_6_txt, 2687, 11.25);
+//     chassis.waitUntil(26.427919);
+//     matchloader.extend();
+//     chassis.waitUntilDone();
+//     pros::delay(50);
+//     matchloader.retract();
+//     chassis.turnToHeading(270.0, 702);
+//     chassis.moveToPoint(-31.0, 48.0, 721, {.forwards = false});
+//     outtakeMotor.move(127);
+//     pros::delay(3000);
+//     outtakeMotor.move(0);
+//     chassis.moveToPoint(-34.32, 48.0, 576, {.minSpeed = 44, .earlyExitRange = 1.99});
+//     chassis.swingToHeading(
+//         103.369265, DriveSide::RIGHT, 825,
+//         {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPoint(24.0, 24.0, 1750);
+//     chassis.waitUntil(53.99237);
+//     matchloader.extend();
+//     intakeMotor.move(127);
+//     chassis.waitUntilDone();
+//     pros::delay(1000);
+//     matchloader.retract();
+//     chassis.turnToHeading(225.0, 830);
+//     chassis.moveToPoint(14.4, 14.4, 827);
+//     intakeMotor.move(-127);
+//     pros::delay(2000);
+//     intakeMotor.move(0);
+//     chassis.moveToPoint(48.0, 48.0, 1492, {.forwards = false});
+//     pros::delay(50);
+//     chassis.turnToHeading(90.0, 867);
+//     matchloader.extend();
+//     intakeMotor.move(127);
+//     chassis.moveToPoint(56.75, 48.0, 760);
+//     pros::delay(2000);
+//     chassis.moveToPoint(31.0, 48.0, 1088, {.forwards = false});
+//     matchloader.retract();
+//     outtakeMotor.move(127);
+//     pros::delay(3000);
+//     outtakeMotor.move(0);
+//     chassis.moveToPoint(42.48, 48.0, 833, {.minSpeed = 51, .earlyExitRange = 3.57});
+//     chassis.swingToHeading(
+//         123.015891, DriveSide::LEFT, 484,
+//         {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPose(63.36, -0.0, 180.0, 1591, {.lead = 0.7});
+//     chassis.waitUntil(37.955031);
+//     intakeMotor.move(127);
+//     chassis.waitUntilDone();
+//     pros::delay(2000);
+//     {
+//         AutonRecovery::WallResetParams p{};
+//         p.faceHeadingDeg = 270.0;
+//         p.leftTargetMm = 595.376;
+//         p.rightTargetMm = 595.376;
+//         p.squareTimeoutMs = 800;
+//         p.setTimeoutMs = 900;
+//         p.tolMm = 10;
+//         p.maxTurn = AutonRecovery::Tuning::maxTurn;
+//         p.maxFwd = AutonRecovery::Tuning::maxFwd;
+//         p.trySquare = true;
+//         AutonRecovery::wallReset(p);
+//     }
+//     chassis.moveToPose(50.16, -35.52, 270.0, 1362,
+//                        {.lead = 0.35, .minSpeed = 41, .earlyExitRange = 2.97},
+//                        true);
+//     {
+//         AutonRecovery::WallResetParams p{};
+//         AutonRecovery::wallReset(p);
+//     }
+//     chassis.waitUntil(28.075482);
+//     intakeMotor.move(0);
+//     matchloader.extend();
+//     chassis.waitUntilDone();
+//     intakeMotor.move(127);
+//     chassis.swingToHeading(
+//         97.107189, DriveSide::RIGHT, 839,
+//         {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPose(56.844985, -46.300579, 90.0, 781, {.lead = 0.1});
+//     pros::delay(2000);
+//     chassis.turnToHeading(86.237968, 463);
+//     chassis.moveToPoint(31.0, -48.0, 1091, {.forwards = false});
+//     matchloader.retract();
+//     outtakeMotor.move(127);
+//     pros::delay(3000);
+//     outtakeMotor.move(0);
+//     chassis.turnToHeading(90.0, 463);
+//     chassis.moveToPoint(34.08, -48.0, 566, {.minSpeed = 52, .earlyExitRange = 1.85});
+//     chassis.swingToHeading(
+//         318.611344, DriveSide::RIGHT, 745,
+//         {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPoint(24.0, -24.0, 985, {.minSpeed = 65, .earlyExitRange = 4.78});
+//     chassis.waitUntil(15.629313);
+//     matchloader.extend();
+//     intakeMotor.move(127);
+//     chassis.waitUntilDone();
+//     chassis.swingToHeading(
+//         16.583369, DriveSide::LEFT, 578,
+//         {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPoint(24.48, -14.16, 654);
+//     chassis.swingToHeading(135.308882, DriveSide::LEFT, 752, {.direction = AngularDirection::CW_CLOCKWISE});
+//     pros::delay(50);
+//     chassis.moveToPose(12.834936, -12.904316, 315.0, 693,
+//                        {.forwards = false, .lead = 0.3});
+//     matchloader.retract();
+//     midgoal.retract();
+//     outtakeMotor.move(-127);
+//     pros::delay(2000);
+//     outtakeMotor.move(0);
+//     chassis.turnToHeading(134.23863, 461);
+//     chassis.moveToPoint(15.48, -15.48, 592, {.minSpeed = 52, .earlyExitRange = 2.22});
+//     chassis.swingToHeading(
+//         255.792506, DriveSide::LEFT, 721,
+//         {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.moveToPoint(-51.6, -40.32, 1858);
+//     chassis.swingToHeading(
+//         300.4526, DriveSide::LEFT, 531,
+//         {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+//     chassis.turnToHeading(301.007972, 460);
+//     chassis.moveToPose(-63.6, -0.0, 0.0, 1372, {.lead = 0.86});
+//     chassis.waitUntil(26.163392);
+//     intakeMotor.move(127);
+//     chassis.waitUntilDone();
+
+//     intakeMotor.move(0);
+//     outtakeMotor.move(0);
+//     matchloader.retract();
+// }

@@ -1,0 +1,67 @@
+// Path asset declarations
+// Add these near the top of your file:
+
+ASSET(skills3_3_txt);
+ASSET(skills3_5_txt);
+ASSET(skills3_10_txt);
+
+// Autonomous routine:
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(61.680000, -25.920000, 180.000000);
+
+chassis.turnToHeading(220.962289, 583);
+chassis.moveToPoint(42.72, -47.76, 1156);
+pros::delay(50);
+chassis.turnToHeading(90.0, 856);
+chassis.moveToPoint(57.84, -47.76, 860);
+chassis.waitUntil(0.697846);
+matchloader.extend();
+chassis.waitUntilDone();
+matchloadPistons.set_value(true);
+pros::delay(1200);
+chassis.turnToHeading(90.68206, 461);
+chassis.moveToPoint(37.68, -47.52, 968, {.forwards = false});
+chassis.waitUntil(20.161429);
+matchloader.retract();
+chassis.waitUntilDone();
+pros::delay(50);
+matchloadPistons.set_value(false);
+chassis.turnToHeading(17.031924, 712);
+chassis.follow("skills3_3_txt", 1083, 9.0, {.forwards = false});
+pros::delay(50);
+chassis.turnToHeading(88.104875, 526);
+chassis.moveToPoint(-36.24, -62.4, 1829, {.forwards = false});
+pros::delay(50);
+chassis.follow("skills3_5_txt", 2078, 9.0, {.forwards = false});
+pros::delay(50);
+chassis.turnToHeading(270.0, 466);
+chassis.moveToPoint(-31.68, -47.76, 635, {.forwards = false});
+chassis.waitUntil(4.8);
+outtake.move(127);
+chassis.waitUntilDone();
+pros::delay(2300);
+chassis.turnToHeading(271.316912, 461);
+chassis.moveToPoint(-52.56, -47.28, 1215);
+chassis.waitUntil(20.650908);
+matchloader.extend();
+chassis.waitUntilDone();
+pros::delay(50);
+matchloadPistons.set_value(true);
+chassis.turnToHeading(267.273689, 463);
+chassis.moveToPoint(-57.6, -47.52, 644);
+pros::delay(1200);
+chassis.turnToHeading(271.091216, 463);
+chassis.moveToPoint(-32.4, -48.0, 1355, {.forwards = false});
+chassis.waitUntil(25.204571);
+outtake.move(127);
+matchloader.retract();
+chassis.waitUntilDone();
+matchloadPistons.set_value(false);
+pros::delay(2300);
+chassis.follow("skills3_10_txt", 2316, 9.0);
+pros::delay(50);
+chassis.turnToHeading(358.66778, 468);
+chassis.moveToPoint(-62.64, -0.48, 978);
+
+// Estimated total time: 18.07 s

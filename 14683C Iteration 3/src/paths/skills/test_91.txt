@@ -1,0 +1,176 @@
+// Path asset declarations
+// Add these near the top of your file:
+
+ASSET(91_2_txt);
+ASSET(91_6_txt);
+
+// Autonomous routine:
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(-50.400000, 12.720000, 90.000000);
+
+chassis.turnToHeading(27.85293, 670);
+chassis.moveToPose(-56.750187, 47.924576, 270.0, 1466, {.lead = 0.7});
+chassis.waitUntil(18.571491);
+matchloadPistons.set_value(true);
+chassis.waitUntil(32.769549);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.waitUntilDone();
+pros::delay(2000);
+chassis.moveToPoint(-48.0, 48.0, 760, {.forwards = false});
+pros::delay(50);
+matchloadPistons.set_value(false);
+chassis.turnToHeading(139.490614, 853);
+chassis.follow("91_2_txt", 2685, 6.56257);
+chassis.waitUntil(26.870328);
+matchloadPistons.set_value(true);
+chassis.waitUntilDone();
+pros::delay(50);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.turnToHeading(270.0, 705);
+chassis.moveToPoint(-31.0, -48.0, 706, {.forwards = false});
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(3000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.moveToPoint(-56.75, -48.0, 1088);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(2000);
+chassis.moveToPoint(-48.0, -48.0, 760, {.forwards = false});
+pros::delay(50);
+matchloadPistons.set_value(false);
+chassis.turnToHeading(39.573434, 852);
+chassis.follow("91_6_txt", 2687, 11.25);
+chassis.waitUntil(26.427919);
+matchloadPistons.set_value(true);
+chassis.waitUntilDone();
+pros::delay(50);
+matchloadPistons.set_value(false);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.turnToHeading(270.0, 702);
+chassis.moveToPoint(-31.0, 48.0, 721, {.forwards = false});
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(3000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.moveToPoint(-34.32, 48.0, 576, {.minSpeed = 44, .earlyExitRange = 1.99});
+chassis.swingToHeading(103.369265, DriveSide::RIGHT, 825, {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPoint(24.0, 24.0, 1750);
+chassis.waitUntil(53.99237);
+matchloadPistons.set_value(true);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.waitUntilDone();
+pros::delay(1000);
+matchloadPistons.set_value(false);
+chassis.turnToHeading(225.0, 830);
+chassis.moveToPoint(14.4, 14.4, 827);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(2000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.moveToPoint(48.0, 48.0, 1492, {.forwards = false});
+pros::delay(50);
+chassis.turnToHeading(90.0, 867);
+matchloadPistons.set_value(true);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.moveToPoint(56.75, 48.0, 760);
+pros::delay(2000);
+chassis.moveToPoint(31.0, 48.0, 1088, {.forwards = false});
+matchloadPistons.set_value(false);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(3000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.moveToPoint(42.48, 48.0, 833, {.minSpeed = 51, .earlyExitRange = 3.57});
+chassis.swingToHeading(123.015891, DriveSide::LEFT, 484, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPose(63.36, -0.0, 180.0, 1591, {.lead = 0.7});
+chassis.waitUntil(37.955031);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.waitUntilDone();
+pros::delay(2000);
+chassis.moveToPose(50.16, -35.52, 270.0, 1362, {.lead = 0.35, .minSpeed = 41, .earlyExitRange = 2.97});
+chassis.waitUntil(28.075482);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+matchloadPistons.set_value(true);
+chassis.waitUntilDone();
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.swingToHeading(97.107189, DriveSide::RIGHT, 839, {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPose(56.844985, -46.300579, 90.0, 781, {.lead = 0.1});
+pros::delay(2000);
+chassis.turnToHeading(86.237968, 463);
+chassis.moveToPoint(31.0, -48.0, 1091, {.forwards = false});
+matchloadPistons.set_value(false);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(3000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.turnToHeading(90.0, 463);
+chassis.moveToPoint(34.08, -48.0, 566, {.minSpeed = 52, .earlyExitRange = 1.85});
+chassis.swingToHeading(318.611344, DriveSide::RIGHT, 745, {.direction = AngularDirection::CCW_COUNTERCLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPoint(24.0, -24.0, 985, {.minSpeed = 65, .earlyExitRange = 4.78});
+chassis.waitUntil(15.629313);
+matchloadPistons.set_value(true);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.waitUntilDone();
+chassis.swingToHeading(16.583369, DriveSide::LEFT, 578, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPoint(24.48, -14.16, 654);
+chassis.swingToHeading(135.308882, DriveSide::LEFT, 752, {.direction = AngularDirection::CW_CLOCKWISE});
+pros::delay(50);
+chassis.moveToPose(12.834936, -12.904316, 315.0, 693, {.forwards = false, .lead = 0.3});
+matchloadPistons.set_value(false);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+pros::delay(2000);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.turnToHeading(134.23863, 461);
+chassis.moveToPoint(15.48, -15.48, 592, {.minSpeed = 52, .earlyExitRange = 2.22});
+chassis.swingToHeading(255.792506, DriveSide::LEFT, 721, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.moveToPoint(-51.6, -40.32, 1858);
+chassis.swingToHeading(300.4526, DriveSide::LEFT, 531, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+chassis.turnToHeading(301.007972, 460);
+chassis.moveToPose(-63.6, -0.0, 0.0, 1372, {.lead = 0.86});
+chassis.waitUntil(26.163392);
+intake.move(0);
+intake.move(127);
+intake.move(-127)
+chassis.waitUntilDone();
+
+// Estimated total time: 48.79 s
