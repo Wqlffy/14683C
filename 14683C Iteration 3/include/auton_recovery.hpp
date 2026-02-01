@@ -39,7 +39,7 @@ constexpr int rightDriveCount = 3;
 // Brake behavior during stabilize.
 constexpr pros::motor_brake_mode_e_t holdBrakeMode = pros::E_MOTOR_BRAKE_HOLD;
 constexpr pros::motor_brake_mode_e_t defaultBrakeMode = pros::E_MOTOR_BRAKE_BRAKE;
-}  // namespace Tuning
+}
 
 struct FilteredDistances {
     double leftMmFilt = 0.0;
