@@ -11,15 +11,20 @@ ASSET(skills3_10_txt);
 
 void skills3() {
     chassis.setPose(61.680000, -25.920000, 180.000000);
-
+    
+    //move to right matchloader
     chassis.turnToHeading(220.962289, 583);
     chassis.moveToPoint(42.72, -47.76, 1156);
     pros::delay(50);
     chassis.turnToHeading(90.0, 856);
+    
+    //enter right matchloader
     chassis.moveToPoint(57.84, -47.76, 860);
     matchloader.extend();
     chassis.waitUntilDone();
-    pros::delay(1200);
+    pros::delay(1200); //tune matchloader time
+
+    //move to opposite side
     chassis.turnToHeading(90.68206, 461);
     chassis.moveToPoint(37.68, -47.52, 968, {.forwards = false});
     matchloader.retract();
@@ -31,6 +36,8 @@ void skills3() {
     chassis.turnToHeading(88.104875, 526);
     chassis.moveToPoint(-36.24, -62.4, 1829, {.forwards = false});
     pros::delay(50);
+
+    //move to long goal
     chassis.follow(skills3_5_txt, 2078, 9.0, false);
     pros::delay(50);
     chassis.turnToHeading(270.0, 466);
@@ -38,6 +45,8 @@ void skills3() {
     outtakeMotor.move(127);
     chassis.waitUntilDone();
     pros::delay(2300);
+
+    //move to right matchloader
     outtakeMotor.move(0);
     chassis.turnToHeading(271.316912, 461);
     chassis.moveToPoint(-52.56, -47.28, 1215);
@@ -47,12 +56,16 @@ void skills3() {
     chassis.turnToHeading(267.273689, 463);
     chassis.moveToPoint(-57.6, -47.52, 644);
     pros::delay(1200);
+
+    //move to long goal
     chassis.turnToHeading(271.091216, 463);
     chassis.moveToPoint(-32.4, -48.0, 1355, {.forwards = false});
     outtakeMotor.move(127);
     matchloader.retract();
     chassis.waitUntilDone();
     pros::delay(2300);
+
+    //move to parking zone
     outtakeMotor.move(0);
     chassis.follow(skills3_10_txt, 2316, 9.0);
     pros::delay(50);
