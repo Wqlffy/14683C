@@ -375,33 +375,92 @@ bool driveDistanceHeading(double inches,
 }
 
 bool wallReset(const WallResetParams& p) {
-    bool left_valid = distValidMm(leftDist.get());
-    bool right_valid = distValidMm(rightDist.get());
+    const bool use_left = p.useLeft;
+    const bool use_right = p.useRight;
+    int left_mm = leftDist.get();
+    int right_mm = rightDist.get();
+    bool left_valid = distValidMm(left_mm);
+    bool right_valid = distValidMm(right_mm);
+
+    std::printf("RECOVERY: wallReset start useL=%d useR=%d L=%d(%d) R=%d(%d)\n",
+                use_left ? 1 : 0, use_right ? 1 : 0,
+                left_mm, left_valid ? 1 : 0,
+                right_mm, right_valid ? 1 : 0);
+
+    bool left_ok = use_left && left_valid;
+    bool right_ok = use_right && right_valid;
+
+    if (!left_ok && !right_ok) {
+        std::printf("RECOVERY: wallReset strategy=NO_SENSORS\n");
+        std::printf("RECOVERY: wallReset done ok=0\n");
+        return false;
+    }
 
     // TODO(HAS_FRONT_DIST): optionally square against front wall sensors when present.
 #if defined(HAS_FRONT_DIST)
     // Placeholder for future front distance sensors (e.g. frontDistLeft/frontDistRight).
 #endif
 
-    if (p.trySquare && left_valid && right_valid) {
+    if (p.trySquare && left_ok && right_ok) {
         wallSquare(p.squareTimeoutMs, p.tolMm, p.maxTurn);
-        left_valid = distValidMm(leftDist.get());
-        right_valid = distValidMm(rightDist.get());
+        left_mm = leftDist.get();
+        right_mm = rightDist.get();
+        left_valid = distValidMm(left_mm);
+        right_valid = distValidMm(right_mm);
+        left_ok = use_left && left_valid;
+        right_ok = use_right && right_valid;
     }
 
-    bool ok = false;
-    if (left_valid && p.leftTargetMm > 0.0) {
-        ok = snapLeftToWall(p.leftTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
-                            p.tolMm, p.maxFwd);
-    } else if (right_valid && p.rightTargetMm > 0.0) {
-        ok = snapRightToWall(p.rightTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
-                             p.tolMm, p.maxFwd);
-    } else {
-        chassis.turnToHeading(p.faceHeadingDeg, 450);
+    const char* strategy = "NO_SENSORS";
+    if (left_ok && right_ok) {
+        strategy = "BOTH";
+    } else if (left_ok) {
+        strategy = "LEFT_ONLY";
+    } else if (right_ok) {
+        strategy = "RIGHT_ONLY";
+    }
+    std::printf("RECOVERY: wallReset strategy=%s\n", strategy);
+
+    if (!left_ok && !right_ok) {
+        std::printf("RECOVERY: wallReset done ok=0\n");
         return false;
     }
 
+    bool ok = false;
+    if (left_ok && right_ok) {
+        double target_mm = 0.0;
+        if (p.leftTargetMm > 0.0 && p.rightTargetMm > 0.0) {
+            target_mm = 0.5 * (p.leftTargetMm + p.rightTargetMm);
+        } else if (p.leftTargetMm > 0.0) {
+            target_mm = p.leftTargetMm;
+        } else if (p.rightTargetMm > 0.0) {
+            target_mm = p.rightTargetMm;
+        } else {
+            std::printf("RECOVERY: wallReset abort (no target)\n");
+        }
+
+        if (target_mm > 0.0) {
+            ok = wallSetDistance(target_mm, p.setTimeoutMs, p.tolMm, p.maxFwd,
+                                 p.faceHeadingDeg);
+        }
+    } else if (left_ok) {
+        if (p.leftTargetMm > 0.0) {
+            ok = snapLeftToWall(p.leftTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
+                                p.tolMm, p.maxFwd);
+        } else {
+            std::printf("RECOVERY: wallReset abort (no left target)\n");
+        }
+    } else if (right_ok) {
+        if (p.rightTargetMm > 0.0) {
+            ok = snapRightToWall(p.rightTargetMm, p.faceHeadingDeg, p.setTimeoutMs,
+                                 p.tolMm, p.maxFwd);
+        } else {
+            std::printf("RECOVERY: wallReset abort (no right target)\n");
+        }
+    }
+
     stabilize(120);
+    std::printf("RECOVERY: wallReset done ok=%d\n", ok ? 1 : 0);
     return ok;
 }
 

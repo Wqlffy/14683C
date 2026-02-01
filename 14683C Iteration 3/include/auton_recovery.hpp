@@ -82,27 +82,29 @@ bool driveDistanceHeading(double inches,
 
 RecoverResult recoverAfterContact(double desiredWallDistMm,
                                   double faceHeadingDeg,
-                                  bool doSetDistance = true);
+                                  bool doSetDistance = false);
 
-	bool runSegmentWithRecovery(const std::function<void()>& segmentFn,
-	                            const std::function<double()>& driveCmdFn,
-	                            double desiredWallDistMm,
-	                            double faceHeadingDeg,
-	                            bool doSetDistance = true,
-	                            int maxAttempts = 2,
-	                            int pollMs = Tuning::distUpdateMs);
+bool runSegmentWithRecovery(const std::function<void()>& segmentFn,
+                            const std::function<double()>& driveCmdFn,
+                            double desiredWallDistMm,
+                            double faceHeadingDeg,
+                            bool doSetDistance = false,
+                            int maxAttempts = 2,
+                            int pollMs = Tuning::distUpdateMs);
 
-	struct WallResetParams {
-	    double faceHeadingDeg = 0.0;
-	    double leftTargetMm = 0.0;
-	    double rightTargetMm = 0.0;
-	    int squareTimeoutMs = 800;
-	    int setTimeoutMs = 900;
-	    int tolMm = 10;
-	    double maxTurn = Tuning::maxTurn;
-	    double maxFwd = Tuning::maxFwd;
-	    bool trySquare = true;
-	};
+struct WallResetParams {
+    double faceHeadingDeg = 0.0;
+    double leftTargetMm = 0.0;
+    double rightTargetMm = 0.0;
+    int squareTimeoutMs = 800;
+    int setTimeoutMs = 900;
+    int tolMm = 10;
+    double maxTurn = Tuning::maxTurn;
+    double maxFwd = Tuning::maxFwd;
+    bool trySquare = true;
+    bool useLeft = true;
+    bool useRight = true;
+};
 
-	bool wallReset(const WallResetParams& p);
-	}
+bool wallReset(const WallResetParams& p);
+} // namespace AutonRecovery
