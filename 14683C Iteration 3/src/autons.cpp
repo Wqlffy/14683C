@@ -43,7 +43,7 @@ void auton_43_blue_left() {
     //move to long goal
     chassis.moveToPoint(-32.64, 47.76, 1158, {.forwards = false});
     chassis.waitUntilDone();
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     matchloader.retract();
     pros::delay(150);
     intakeMotor.move(127);
@@ -96,7 +96,7 @@ void auton_43_red_left() {
     //move to long goal
     chassis.moveToPoint(-32.64, 47.76, 1158, {.forwards = false});
     chassis.waitUntilDone();
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     matchloader.retract();
     pros::delay(150);
     intakeMotor.move(127);
@@ -172,7 +172,7 @@ void auton_9_long_blue_left() {
 
     //move back to long goal
     chassis.moveToPoint(-29.76, 48.0, 1369, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(127);
     matchloader.retract();
     chassis.waitUntilDone();
@@ -221,7 +221,7 @@ void auton_9_long_blue_right() {
 
     //move to long goal
     chassis.follow(seg3R_txt, 3880, 9.0, false);
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
 
     //score long goal
     outtakeMotor.move(127);
@@ -238,7 +238,7 @@ void auton_9_long_blue_right() {
 
     //move back to long goal
     chassis.moveToPoint(-29.76, -48.0, 1369, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(0);
     outtakeMotor.move(127);
     outtakeMotor.move(-127);
@@ -305,7 +305,7 @@ void auton_9_long_red_left() {
 
     //move back to long goal
     chassis.moveToPoint(-29.76, 48.0, 1369, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(127);
     matchloader.retract();
     chassis.waitUntilDone();
@@ -354,7 +354,7 @@ void auton_9_long_red_right() {
 
     //move to long goal
     chassis.follow(seg3R_txt, 3880, 9.0, false);
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
 
     //score long goal
     outtakeMotor.move(127);
@@ -371,7 +371,7 @@ void auton_9_long_red_right() {
 
     //move back to long goal
     chassis.moveToPoint(-29.76, -48.0, 1369, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(0);
     outtakeMotor.move(127);
     outtakeMotor.move(-127);
@@ -409,7 +409,7 @@ void auton_awp_blue_right() {
 
     //move to right long goal
     chassis.moveToPoint(-31.92, -48.24, 1199, {.forwards = false});
-    AutonRecovery::snapRightToWall(595, 270);
+    AutonRecovery::snapRightToWall(440, 270);
     outtakeMotor.move(127);
     matchloader.retract();
     chassis.waitUntilDone();
@@ -468,7 +468,7 @@ void auton_awp_blue_right() {
 
     //score in left long goal
     chassis.moveToPoint(-31.92, 47.76, 1204, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(127);
 }
 
@@ -488,7 +488,7 @@ void auton_awp_red_right() {
 
     //move to right long goal
     chassis.moveToPoint(-31.92, -48.24, 1199, {.forwards = false});
-    AutonRecovery::snapRightToWall(595, 270);
+    AutonRecovery::snapRightToWall(440, 270);
     outtakeMotor.move(127);
     matchloader.retract();
     chassis.waitUntilDone();
@@ -547,7 +547,7 @@ void auton_awp_red_right() {
 
     //score in left long goal
     chassis.moveToPoint(-31.92, 47.76, 1204, {.forwards = false});
-    AutonRecovery::snapLeftToWall(595, 270);
+    AutonRecovery::snapLeftToWall(440, 270);
     outtakeMotor.move(127);
 }
 
@@ -662,8 +662,8 @@ void skills_auton() {
 //     {
 //         AutonRecovery::WallResetParams p{};
 //         p.faceHeadingDeg = 270.0;
-//         p.leftTargetMm = 595;
-//         p.rightTargetMm = 595;
+//         p.leftTargetMm = 440;
+//         p.rightTargetMm = 440;
 //         p.squareTimeoutMs = 800;
 //         p.setTimeoutMs = 900;
 //         p.tolMm = 10;

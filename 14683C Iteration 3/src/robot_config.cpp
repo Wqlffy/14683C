@@ -19,9 +19,9 @@ pros::Imu imu(21);
 
 pros::Distance leftDist(1);
 pros::Distance rightDist(10);
-pros::Distance frontDist(2);
+pros::Distance frontDist(16);
 
 pros::adi::Pneumatics matchloader('A', false);
 pros::adi::Pneumatics midgoal('C', false);
-pros::adi::Pneumatics wing('B', false);
+pros::adi::Pneumatics wing('E', false);
 pros::adi::Pneumatics middescore('D', false);

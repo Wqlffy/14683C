@@ -1,11 +1,3 @@
-1. add front sensor
-2. fix matchloader getting stuck in the intake
-3. add pneumatic for middle goal descore
-4. print hood
-5. print wing aligner
 6. test autons
     120mm from real center, but on the center line
     6.1 measure targetmM for wall resets
-7. fix pneumatic wiring
-8. fix motor wiring on drivetrain
-

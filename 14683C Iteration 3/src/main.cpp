@@ -1,4 +1,5 @@
 #include "main.h"
+#include "autons.hpp"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "auton_selector.hpp"
@@ -171,8 +172,6 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 void initialize() {
-    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
-    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
 
     matchloader.set_value(false);
     wing.set_value(false);
@@ -200,9 +199,6 @@ void competition_initialize() {
     
 }
 void autonomous() {
-    leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
-    rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_BRAKE);
-
     matchloader.set_value(false);
     wing.set_value(false);
     middescore.set_value(false);
@@ -212,16 +208,15 @@ void autonomous() {
 
 
 void opcontrol() {
+    midgoal.set_value(true);
     chassis.cancelAllMotions();
     leftMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
     rightMotors.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
 
     bool flagStateLoader = false;
-    bool flagStateWing = false;
     bool flagStateDescore = false;
 
     bool lastA = false;
-    bool lastB = false;
     bool lastDown = false;
 
     while (true) {
@@ -236,24 +231,24 @@ void opcontrol() {
 
         if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
-            outtake = 127;
+            outtake = -127;
             midgoal.set_value(true); 
         }
         else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
-            outtake = -127;
+            outtake = 127;
             midgoal.set_value(false);
         }
         else {
             if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
                 intake = 127;
-                outtake = 50; 
+                outtake = 80; 
             }
             else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
                 intake = -127;
                 outtake = -127;
             }
-            midgoal.set_value(false);
+            midgoal.set_value(true);
         }
 
         intakeMotor.move(intake);
@@ -271,17 +266,13 @@ void opcontrol() {
 
         lastA = currA;
 
-        bool currB = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
-
-        if (currB && !lastB) {
-            flagStateWing = !flagStateWing;
-            if (flagStateWing)
-                wing.extend();
-            else
-                wing.retract();
+        const bool wingHeld =
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+        if (wingHeld) {
+            wing.extend();
+        } else {
+            wing.retract();
         }
-
-        lastB = currB;
 
         bool currDown = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
 
