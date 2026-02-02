@@ -14,6 +14,8 @@ lv_obj_t* s_detail_img = nullptr;
 lv_obj_t* s_status_label = nullptr;
 lv_obj_t* s_lock_btn = nullptr;
 lv_obj_t* s_lock_label = nullptr;
+lv_obj_t* s_lock_badge = nullptr;
+lv_obj_t* s_lock_badge_label = nullptr;
 lv_obj_t* s_buttons[AUTON_COUNT] = {};
 
 constexpr uint32_t kStatusUnlocked = 0xe0b84b;
@@ -92,6 +94,16 @@ void update_lock_ui() {
                    : lv_color_hex(kLockBtnUnlocked),
             static_cast<lv_style_selector_t>(LV_PART_MAIN) |
                 static_cast<lv_style_selector_t>(LV_STATE_PRESSED));
+    }
+    if (s_lock_badge && s_lock_badge_label) {
+        lv_label_set_text(s_lock_badge_label, locked ? "LOCKED" : "UNLOCKED");
+        lv_obj_set_style_bg_color(
+            s_lock_badge,
+            locked ? lv_color_hex(kStatusLocked)
+                   : lv_color_hex(kStatusUnlocked),
+            LV_PART_MAIN);
+        lv_obj_set_style_text_color(
+            s_lock_badge_label, ui_theme::color_bg(), LV_PART_MAIN);
     }
     for (size_t i = 0; i < AUTON_COUNT; ++i) {
         if (!s_buttons[i]) {
@@ -172,6 +184,17 @@ lv_obj_t* build(lv_obj_t* parent) {
                          ui_theme::font_small());
     ui_theme::make_label(top_right, "LINK", ui_theme::color_text_dim(),
                          ui_theme::font_small());
+    s_lock_badge = lv_obj_create(top_right);
+    lv_obj_set_height(s_lock_badge, 22);
+    lv_obj_set_width(s_lock_badge, 86);
+    lv_obj_set_style_radius(s_lock_badge, ui_theme::kRadiusPill, LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_lock_badge, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s_lock_badge, 0, LV_PART_MAIN);
+    lv_obj_set_flex_flow(s_lock_badge, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(s_lock_badge, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    s_lock_badge_label = ui_theme::make_label(
+        s_lock_badge, "--", ui_theme::color_text(), ui_theme::font_small());
 
     lv_obj_t* content = lv_obj_create(s_root);
     set_transparent(content);

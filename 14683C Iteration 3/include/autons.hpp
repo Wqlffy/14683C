@@ -12,3 +12,4 @@ void calibration_auton();
 void auton_skills();
 void skills_auton();
 void test_91();
+void cdrift(int power, int duration_ms);

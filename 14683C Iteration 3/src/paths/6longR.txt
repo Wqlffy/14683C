@@ -1,0 +1,35 @@
+/* CODEGEN EXPORT: LemLib */
+
+chassis.setPose(-63.840000, -17.040000, 90.000000);
+
+chassis.moveToPoint(-47.04, -17.04, 1028);
+pros::delay(50);
+chassis.turnToHeading(105.361616, 558);
+chassis.moveToPoint(-25.2, -23.04, 1161);
+pros::delay(50);
+intakeMotor.move(127);
+chassis.turnToHeading(222.410498, 966);
+chassis.moveToPoint(-48.0, -48.0, 1399);
+pros::delay(50);
+chassis.turnToHeading(270.0, 685);
+chassis.moveToPoint(-57.36, -48.0, 876);
+matchloadPistons.set_value(true);
+pros::delay(1000);
+intakeMotor.move(127);
+chassis.moveToPoint(-31.68, -48.0, 1226, {.forwards = false});
+matchloadPistons.set_value(false);
+outtakeMotor.move(127);
+intakeMotor.move(127);
+pros::delay(3000);
+chassis.turnToHeading(268.830861, 461);
+chassis.moveToPoint(-43.44, -48.24, 949);
+pros::delay(50);
+chassis.turnToHeading(4.763642, 890);
+chassis.moveToPoint(-42.48, -36.72, 944);
+pros::delay(50);
+chassis.turnToHeading(90.0, 850);
+chassis.moveToPoint(-24.72, -36.72, 1051);
+pros::delay(500);
+chassis.moveToPoint(-10.08, -36.72, 974);
+
+// Estimated total time: 11.96 s

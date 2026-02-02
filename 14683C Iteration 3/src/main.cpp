@@ -17,13 +17,13 @@
 #include <utility>
 
 constexpr double JOYSTICK_SCALE = 127.0;
-constexpr double DEADBAND = 0.05;
-constexpr double THROTTLE_EXPO = 1.6;
-constexpr double TURN_EXPO = 1.8;
-constexpr double TURN_AT_FULL = 0.55;
-constexpr double BASE_STEER = 0.15;
-constexpr double TURN_IN_PLACE_GAIN = 0.75;
-constexpr double TURN_IN_PLACE_THROTTLE = 0.10;
+constexpr double DEADBAND = 0.03;
+constexpr double THROTTLE_EXPO = 1.05;
+constexpr double TURN_EXPO = 1.05;
+constexpr double TURN_AT_FULL = 0.70;
+constexpr double BASE_STEER = 0.20;
+constexpr double TURN_IN_PLACE_GAIN = 0.90;
+constexpr double TURN_IN_PLACE_THROTTLE = 0.05;
 
 constexpr std::uint32_t kLvTickMs = 5;
 
