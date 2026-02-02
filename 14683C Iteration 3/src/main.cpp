@@ -77,49 +77,6 @@ static std::pair<double, double> arcDrive(double throttle, double turn) {
     return {left, right};
 }
 
-extern "C" {
-namespace pros {
-namespace c {
-void display_mutex_take(void) __attribute__((weak));
-void display_mutex_give(void) __attribute__((weak));
-}
-}
-}
-
-static lv_indev_t* s_touch_indev = nullptr;
-static std::int16_t s_touch_last_x = -1;
-static std::int16_t s_touch_last_y = -1;
-
-static void touch_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
-    (void)indev;
-    const pros::screen_touch_status_s_t status =
-        pros::screen::touch_status();
-    const bool pressed = (status.touch_status == pros::E_TOUCH_PRESSED ||
-                          status.touch_status == pros::E_TOUCH_HELD);
-
-    data->state = pressed ? LV_INDEV_STATE_PRESSED
-                          : LV_INDEV_STATE_RELEASED;
-    if (status.x >= 0 && status.y >= 0) {
-        data->point.x = status.x;
-        data->point.y = status.y;
-        s_touch_last_x = status.x;
-        s_touch_last_y = status.y;
-    } else {
-        data->point.x = (s_touch_last_x >= 0) ? s_touch_last_x : 0;
-        data->point.y = (s_touch_last_y >= 0) ? s_touch_last_y : 0;
-    }
-}
-
-static void init_touch_indev() {
-    if (s_touch_indev) {
-        return;
-    }
-    s_touch_indev = lv_indev_create();
-    lv_indev_set_type(s_touch_indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(s_touch_indev, touch_read_cb);
-    lv_indev_set_display(s_touch_indev, lv_display_get_default());
-}
-
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
@@ -183,7 +140,6 @@ void initialize() {
     load_auton_state();
 
     ui_root::init();
-    init_touch_indev();
     static pros::Task ui_task([] {
         while (true) {
             lv_tick_inc(kLvTickMs);
@@ -229,12 +185,12 @@ void opcontrol() {
         int intake = 0;
         int outtake = 0;
 
-        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+        if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             intake = 127;
             outtake = -127;
             midgoal.set_value(true); 
         }
-        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+        else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
             intake = 127;
             outtake = 127;
             midgoal.set_value(false);

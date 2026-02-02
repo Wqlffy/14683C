@@ -4,46 +4,47 @@
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-pros::MotorGroup leftMotors({15, -16, -17}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::MotorGroup leftMotors({-11, -12, -14}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
-pros::MotorGroup rightMotors({-5, 6, 7}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
+pros::MotorGroup rightMotors({20, 19, 18}, pros::MotorGearset::blue, pros::MotorEncoderUnits::degrees);
 
-pros::Imu imu(9);
-pros::Rotation verticalEnc(11); 
-lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_325, 1);
-pros::Distance distanceSensor(10);
+pros::Imu imu(21);
+
+pros::Distance distanceSensorL(1);
+pros::Distance distanceSensorR(10);
+pros::Distance distanceSensorF(16);
 
 lemlib::Drivetrain drivetrain(&leftMotors,
-                              &rightMotors,
-                              12.4, // length between left and right wheels (middle of wheels)
+                              &rightMotors, 
+                              11.5625, 
                               lemlib::Omniwheel::NEW_325, 
-                              450,
-                              2 // traction wheel is usually 2
+                              450, 
+                              2 
 );
 
-lemlib::ControllerSettings linearController(5.5, // proportional gain (kP)
+lemlib::ControllerSettings linearController(14, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            18, // derivative gain (kD)
-                                            10, // anti windup
-                                            1.0, // small error range, in inches
-                                            250, // small error range timeout, in milliseconds
-                                            3.0, // large error range, in inches
-                                            2500, // large error range timeout, in milliseconds
-                                            75 // maximum acceleration (slew)
+                                            8, // derivative gain (kD)
+                                            3, // anti windup
+                                            0.75, // small error range, in inches
+                                            140, // small error range timeout, in milliseconds
+                                            2.5, // large error range, in inches
+                                            450, // large error range timeout, in milliseconds
+                                            15 // maximum acceleration (slew)
 );
 
-lemlib::ControllerSettings angularController(3.8,// proportional gain (kP)
+lemlib::ControllerSettings angularController(3, // proportional gain (kP)
                                              0, // integral gain (kI)
-                                             22, // derivative gain (kD)
-                                             5 , // anti windup
-                                             2.0, // small error range, in degrees
-                                             220, // small error range timeout, in milliseconds
-                                             7.0, // large error range, in degrees
-                                             2500, // large error range timeout, in milliseconds
-                                             55 // maximum acceleration (slew)
+                                             14, // derivative gain (kD)
+                                             3, // anti windup
+                                             1, // small error range, in degrees
+                                             120, // small error range timeout, in milliseconds
+                                             3, // large error range, in degrees
+                                             500, // large error range timeout, in milliseconds
+                                             0 // maximum acceleration (slew)
 );
 
-lemlib::OdomSensors sensors(&vertical, nullptr, nullptr, nullptr, &imu);
+lemlib::OdomSensors sensors(nullptr, nullptr, nullptr, nullptr, &imu);
 
 lemlib::ExpoDriveCurve throttleCurve(8, 12, 1.02);
 
@@ -61,7 +62,9 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            pros::lcd::print(3, "Distance: %f", distanceSensor.get_distance()); // distance sensor
+            pros::lcd::print(3, "Distance: %f", distanceSensorL.get_distance()); // distance sensor
+            pros::lcd::print(4, "Distance: %f", distanceSensorR.get_distance()); // distance sensor
+            pros::lcd::print(5, "Distance: %f", distanceSensorF.get_distance()); // distance sensor
             lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
             pros::delay(50);
         }
@@ -73,8 +76,6 @@ void disabled() {}
 void competition_initialize() {}
 
 void autonomous() {
-	chassis.setPose(0, 0, 0);
-	chassis.moveToPoint(0,15,99999);
 }
 
 void opcontrol() {
