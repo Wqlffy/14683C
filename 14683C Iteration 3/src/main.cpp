@@ -129,7 +129,7 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 void initialize() {
-
+    
     matchloader.set_value(false);
     wing.set_value(false);
     middescore.set_value(false);
