@@ -13,6 +13,8 @@ namespace AutonRecovery {
 namespace {
 FilteredDistances g_distances{};
 std::atomic<double> g_last_drive_cmd{0.0};
+int g_left_last_valid_ms = -100000;
+int g_right_last_valid_ms = -100000;
 
 constexpr double kPi = 3.14159265358979323846;
 constexpr double kWheelDiameterIn = 3.25;
@@ -74,6 +76,7 @@ void tare_drive_encoders() {
 void update_filtered_distances() {
     const int left_mm = leftDist.get();
     const int right_mm = rightDist.get();
+    const int now = pros::millis();
 
     const bool left_valid = distValidMm(left_mm);
     const bool right_valid = distValidMm(right_mm);
@@ -85,6 +88,13 @@ void update_filtered_distances() {
             g_distances.leftMmFilt =
                 filt(g_distances.leftMmFilt, left_mm, Tuning::distAlpha);
         }
+        g_left_last_valid_ms = now;
+        g_distances.leftValid = true;
+    } else if (g_distances.leftValid &&
+               (now - g_left_last_valid_ms) <= Tuning::distInvalidGraceMs) {
+        g_distances.leftValid = true;
+    } else {
+        g_distances.leftValid = false;
     }
     if (right_valid) {
         if (!g_distances.rightValid) {
@@ -93,10 +103,14 @@ void update_filtered_distances() {
             g_distances.rightMmFilt =
                 filt(g_distances.rightMmFilt, right_mm, Tuning::distAlpha);
         }
+        g_right_last_valid_ms = now;
+        g_distances.rightValid = true;
+    } else if (g_distances.rightValid &&
+               (now - g_right_last_valid_ms) <= Tuning::distInvalidGraceMs) {
+        g_distances.rightValid = true;
+    } else {
+        g_distances.rightValid = false;
     }
-
-    g_distances.leftValid = left_valid;
-    g_distances.rightValid = right_valid;
 }
 
 void set_drive_brake(pros::motor_brake_mode_e_t mode) {
@@ -249,21 +263,27 @@ bool snapRightToWall(double targetMm,
                      double maxFwd) {
     double filt_mm = 0.0;
     bool has_filt = false;
+    int last_valid_ms = -100000;
     int stable = 0;
     const int start = pros::millis();
 
     while (pros::millis() - start < timeoutMs) {
         const int mm = rightDist.get();
+        const int now = pros::millis();
         if (!distValidMm(mm)) {
-            set_drive(0.0, 0.0);
-            return false;
-        }
-
-        if (!has_filt) {
-            filt_mm = mm;
-            has_filt = true;
+            if (!has_filt ||
+                (now - last_valid_ms) > Tuning::distInvalidGraceMs) {
+                set_drive(0.0, 0.0);
+                return false;
+            }
         } else {
-            filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            last_valid_ms = now;
+            if (!has_filt) {
+                filt_mm = mm;
+                has_filt = true;
+            } else {
+                filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            }
         }
 
         const double error = targetMm - filt_mm;
@@ -297,21 +317,27 @@ bool snapLeftToWall(double targetMm,
                     double maxFwd) {
     double filt_mm = 0.0;
     bool has_filt = false;
+    int last_valid_ms = -100000;
     int stable = 0;
     const int start = pros::millis();
 
     while (pros::millis() - start < timeoutMs) {
         const int mm = leftDist.get();
+        const int now = pros::millis();
         if (!distValidMm(mm)) {
-            set_drive(0.0, 0.0);
-            return false;
-        }
-
-        if (!has_filt) {
-            filt_mm = mm;
-            has_filt = true;
+            if (!has_filt ||
+                (now - last_valid_ms) > Tuning::distInvalidGraceMs) {
+                set_drive(0.0, 0.0);
+                return false;
+            }
         } else {
-            filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            last_valid_ms = now;
+            if (!has_filt) {
+                filt_mm = mm;
+                has_filt = true;
+            } else {
+                filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            }
         }
 
         const double error = targetMm - filt_mm;
@@ -345,21 +371,27 @@ bool frontSetDistance(double targetMm,
                       double maxFwd) {
     double filt_mm = 0.0;
     bool has_filt = false;
+    int last_valid_ms = -100000;
     int stable = 0;
     const int start = pros::millis();
 
     while (pros::millis() - start < timeoutMs) {
         const int mm = frontDist.get();
+        const int now = pros::millis();
         if (!distValidMm(mm)) {
-            set_drive(0.0, 0.0);
-            return false;
-        }
-
-        if (!has_filt) {
-            filt_mm = mm;
-            has_filt = true;
+            if (!has_filt ||
+                (now - last_valid_ms) > Tuning::distInvalidGraceMs) {
+                set_drive(0.0, 0.0);
+                return false;
+            }
         } else {
-            filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            last_valid_ms = now;
+            if (!has_filt) {
+                filt_mm = mm;
+                has_filt = true;
+            } else {
+                filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            }
         }
 
         const double error = targetMm - filt_mm;
@@ -383,6 +415,224 @@ bool frontSetDistance(double targetMm,
     }
 
     set_drive(0.0, 0.0);
+    return false;
+}
+
+bool followRightWall(double targetMm,
+                     double forwardCmd,
+                     int durationMs,
+                     double faceHeadingDeg,
+                     double maxTurn,
+                     double distKp,
+                     int pollMs) {
+    if (pollMs <= 0) {
+        pollMs = Tuning::distUpdateMs;
+    }
+
+    double filt_mm = 0.0;
+    bool has_filt = false;
+    int last_valid_ms = -100000;
+    const int start = pros::millis();
+
+    while (pros::millis() - start < durationMs) {
+        const int mm = rightDist.get();
+        const int now = pros::millis();
+        if (!distValidMm(mm)) {
+            if (!has_filt ||
+                (now - last_valid_ms) > Tuning::distInvalidGraceMs) {
+                set_drive(0.0, 0.0);
+                return false;
+            }
+        } else {
+            last_valid_ms = now;
+            if (!has_filt) {
+                filt_mm = mm;
+                has_filt = true;
+            } else {
+                filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            }
+        }
+
+        const double error = targetMm - filt_mm;
+        const double heading_err = wrap_deg(faceHeadingDeg - imu.get_heading());
+        const double turn_cmd =
+            clamp(-distKp * error + Tuning::headingKp * heading_err,
+                  -maxTurn, maxTurn);
+
+        set_drive(forwardCmd + turn_cmd, forwardCmd - turn_cmd);
+        pros::delay(pollMs);
+    }
+
+    set_drive(0.0, 0.0);
+    return true;
+}
+
+bool followLeftWall(double targetMm,
+                    double forwardCmd,
+                    int durationMs,
+                    double faceHeadingDeg,
+                    double maxTurn,
+                    double distKp,
+                    int pollMs) {
+    if (pollMs <= 0) {
+        pollMs = Tuning::distUpdateMs;
+    }
+
+    double filt_mm = 0.0;
+    bool has_filt = false;
+    int last_valid_ms = -100000;
+    const int start = pros::millis();
+
+    while (pros::millis() - start < durationMs) {
+        const int mm = leftDist.get();
+        const int now = pros::millis();
+        if (!distValidMm(mm)) {
+            if (!has_filt ||
+                (now - last_valid_ms) > Tuning::distInvalidGraceMs) {
+                set_drive(0.0, 0.0);
+                return false;
+            }
+        } else {
+            last_valid_ms = now;
+            if (!has_filt) {
+                filt_mm = mm;
+                has_filt = true;
+            } else {
+                filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+            }
+        }
+
+        const double error = targetMm - filt_mm;
+        const double heading_err = wrap_deg(faceHeadingDeg - imu.get_heading());
+        const double turn_cmd =
+            clamp(distKp * error + Tuning::headingKp * heading_err,
+                  -maxTurn, maxTurn);
+
+        set_drive(forwardCmd + turn_cmd, forwardCmd - turn_cmd);
+        pros::delay(pollMs);
+    }
+
+    set_drive(0.0, 0.0);
+    return true;
+}
+
+bool runSegmentThenHoldRightWall(const std::function<void()>& segmentFn,
+                                 double targetMm,
+                                 double faceHeadingDeg,
+                                 int holdMs,
+                                 double maxTurn,
+                                 double distKp,
+                                 int pollMs) {
+    if (!segmentFn) {
+        return false;
+    }
+    segmentFn();
+    return followRightWall(targetMm, 0.0, holdMs, faceHeadingDeg, maxTurn,
+                           distKp, pollMs);
+}
+
+bool runSegmentThenHoldLeftWall(const std::function<void()>& segmentFn,
+                                double targetMm,
+                                double faceHeadingDeg,
+                                int holdMs,
+                                double maxTurn,
+                                double distKp,
+                                int pollMs) {
+    if (!segmentFn) {
+        return false;
+    }
+    segmentFn();
+    return followLeftWall(targetMm, 0.0, holdMs, faceHeadingDeg, maxTurn,
+                          distKp, pollMs);
+}
+
+bool moveToPointWithWallAssist(double x,
+                               double y,
+                               int timeoutMs,
+                               WallSide side,
+                               double targetMm,
+                               double faceHeadingDeg,
+                               bool forwards,
+                               int tolMm,
+                               int correctionTimeoutMs,
+                               int minIntervalMs,
+                               int pollMs) {
+    if (pollMs <= 0) {
+        pollMs = Tuning::distUpdateMs;
+    }
+    if (timeoutMs <= 0) {
+        return false;
+    }
+
+    const int start = pros::millis();
+    int last_correction = -100000;
+
+    lemlib::MoveToPointParams params{};
+    params.forwards = forwards;
+    chassis.moveToPoint(x, y, timeoutMs, params);
+
+    while (chassis.isInMotion()) {
+        const int now = pros::millis();
+        const int elapsed = now - start;
+        if (elapsed >= timeoutMs) {
+            chassis.cancelMotion();
+            break;
+        }
+
+        if ((now - last_correction) >= minIntervalMs) {
+            const int mm =
+                (side == WallSide::LEFT) ? leftDist.get() : rightDist.get();
+            if (distValidMm(mm)) {
+                const double error = targetMm - mm;
+                if (std::fabs(error) > tolMm) {
+                    chassis.cancelMotion();
+                    if (side == WallSide::LEFT) {
+                        snapLeftToWall(targetMm, faceHeadingDeg,
+                                       correctionTimeoutMs, tolMm,
+                                       Tuning::maxFwd);
+                    } else {
+                        snapRightToWall(targetMm, faceHeadingDeg,
+                                        correctionTimeoutMs, tolMm,
+                                        Tuning::maxFwd);
+                    }
+                    last_correction = pros::millis();
+                    const int remaining =
+                        timeoutMs - (last_correction - start);
+                    if (remaining > 0) {
+                        chassis.moveToPoint(x, y, remaining, params);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        pros::delay(pollMs);
+    }
+
+    return !chassis.isInMotion();
+}
+
+void resetDriveDistance() {
+    tare_drive_encoders();
+}
+
+double getDriveDistanceInches() {
+    return avg_drive_position_in();
+}
+
+bool waitUntilDriveDistanceIn(double inches, int timeoutMs, int pollMs) {
+    if (pollMs <= 0) {
+        pollMs = Tuning::distUpdateMs;
+    }
+    const double target = std::fabs(inches);
+    const int start = pros::millis();
+    while (pros::millis() - start < timeoutMs) {
+        if (avg_drive_position_in() >= target) {
+            return true;
+        }
+        pros::delay(pollMs);
+    }
     return false;
 }
 

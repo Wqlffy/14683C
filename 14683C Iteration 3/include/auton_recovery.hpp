@@ -12,6 +12,7 @@ constexpr double distMinMm = 50.0;
 constexpr double distMaxMm = 2000.0;
 constexpr double distAlpha = 0.25;
 constexpr int distUpdateMs = 20;
+constexpr int distInvalidGraceMs = 120;
 
 // Stall detection.
 constexpr double stallCmdThresh = 0.20;
@@ -49,6 +50,7 @@ struct FilteredDistances {
 };
 
 enum class RecoverResult : uint8_t { SKIPPED_NO_WALL, DONE, TIMEOUT };
+enum class WallSide : uint8_t { LEFT, RIGHT };
 
 bool distValidMm(int mm);
 double filt(double prev, double now, double alpha);
@@ -80,6 +82,56 @@ bool frontSetDistance(double targetMm,
                       int timeoutMs = 900,
                       int tolMm = 10,
                       double maxFwd = Tuning::maxFwd);
+
+bool followRightWall(double targetMm,
+                     double forwardCmd,
+                     int durationMs,
+                     double faceHeadingDeg,
+                     double maxTurn = Tuning::maxTurn,
+                     double distKp = Tuning::setDistKp,
+                     int pollMs = Tuning::distUpdateMs);
+
+bool followLeftWall(double targetMm,
+                    double forwardCmd,
+                    int durationMs,
+                    double faceHeadingDeg,
+                    double maxTurn = Tuning::maxTurn,
+                    double distKp = Tuning::setDistKp,
+                    int pollMs = Tuning::distUpdateMs);
+
+bool runSegmentThenHoldRightWall(const std::function<void()>& segmentFn,
+                                 double targetMm,
+                                 double faceHeadingDeg,
+                                 int holdMs,
+                                 double maxTurn = Tuning::maxTurn,
+                                 double distKp = Tuning::setDistKp,
+                                 int pollMs = Tuning::distUpdateMs);
+
+bool runSegmentThenHoldLeftWall(const std::function<void()>& segmentFn,
+                                double targetMm,
+                                double faceHeadingDeg,
+                                int holdMs,
+                                double maxTurn = Tuning::maxTurn,
+                                double distKp = Tuning::setDistKp,
+                                int pollMs = Tuning::distUpdateMs);
+
+bool moveToPointWithWallAssist(double x,
+                               double y,
+                               int timeoutMs,
+                               WallSide side,
+                               double targetMm,
+                               double faceHeadingDeg,
+                               bool forwards = true,
+                               int tolMm = 15,
+                               int correctionTimeoutMs = 150,
+                               int minIntervalMs = 200,
+                               int pollMs = Tuning::distUpdateMs);
+
+void resetDriveDistance();
+double getDriveDistanceInches();
+bool waitUntilDriveDistanceIn(double inches,
+                              int timeoutMs = 1000,
+                              int pollMs = Tuning::distUpdateMs);
 
 bool driveDistanceHeading(double inches,
                           double faceHeadingDeg,
