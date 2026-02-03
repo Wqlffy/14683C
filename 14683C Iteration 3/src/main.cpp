@@ -174,7 +174,9 @@ void opcontrol() {
     bool flagStateDescore = false;
 
     bool lastA = false;
+    bool lastB = false;
     bool lastDown = false;
+    bool wingExtended = false;
 
     while (true) {
         double throttle = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) / JOYSTICK_SCALE;
@@ -223,13 +225,16 @@ void opcontrol() {
 
         lastA = currA;
 
-        const bool wingHeld =
-            master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
-        if (wingHeld) {
-            wing.extend();
-        } else {
-            wing.retract();
+        const bool currB = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+        if (currB && !lastB) {
+            wingExtended = !wingExtended;
+            if (wingExtended) {
+                wing.extend();
+            } else {
+                wing.retract();
+            }
         }
+        lastB = currB;
 
         pros::delay(10);
     }
