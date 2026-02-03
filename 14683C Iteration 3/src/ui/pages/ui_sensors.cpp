@@ -20,11 +20,13 @@ lv_obj_t* s_root = nullptr;
 lv_obj_t* s_imu_label = nullptr;
 lv_obj_t* s_left_label = nullptr;
 lv_obj_t* s_right_label = nullptr;
+lv_obj_t* s_front_label = nullptr;
 
 std::uint32_t s_last_update = 0;
 char s_last_imu[32] = "";
 char s_last_left[24] = "";
 char s_last_right[24] = "";
+char s_last_front[24] = "";
 
 bool distance_valid(int mm) {
     return AutonRecovery::distValidMm(mm) && mm != 0 && mm != 9999;
@@ -113,6 +115,9 @@ lv_obj_t* build(lv_obj_t* parent) {
     s_right_label = ui_theme::make_label(panel, "Dist R: ---",
                                          ui_theme::color_text(),
                                          ui_theme::font_body());
+    s_front_label = ui_theme::make_label(panel, "Dist F: ---",
+                                         ui_theme::color_text(),
+                                         ui_theme::font_body());
 
     update();
     return s_root;
@@ -147,8 +152,10 @@ void update() {
 
     const int left_mm = leftDist.get();
     const int right_mm = rightDist.get();
+    const int front_mm = frontDist.get();
     const bool left_valid = distance_valid(left_mm);
     const bool right_valid = distance_valid(right_mm);
+    const bool front_valid = distance_valid(front_mm);
 
     if (left_valid) {
         char buf[24];
@@ -165,6 +172,14 @@ void update() {
     } else {
         set_label_cached(s_right_label, "Dist R: ---", s_last_right,
                          sizeof(s_last_right));
+    }
+    if (front_valid) {
+        char buf[24];
+        std::snprintf(buf, sizeof(buf), "Dist F: %d mm", front_mm);
+        set_label_cached(s_front_label, buf, s_last_front, sizeof(s_last_front));
+    } else {
+        set_label_cached(s_front_label, "Dist F: ---", s_last_front,
+                         sizeof(s_last_front));
     }
 
 #if SENSORS_DEBUG

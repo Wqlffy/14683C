@@ -114,11 +114,6 @@ void load_auton_state() {
 }
 
 void run_selected_auton() {
-    if (g_auton_lock != AutonLockState::Locked) {
-        std::printf("WARN: auton called while unlocked, skipping.\n");
-        return;
-    }
-
     switch (g_selected_auton) {
         case AutonId::Blue43Left:
             auton_43_blue_left();

@@ -17,12 +17,12 @@
 #include <utility>
 
 constexpr double JOYSTICK_SCALE = 127.0;
-constexpr double DEADBAND = 0.03;
-constexpr double THROTTLE_EXPO = 1.05;
-constexpr double TURN_EXPO = 1.05;
-constexpr double TURN_AT_FULL = 0.70;
-constexpr double BASE_STEER = 0.20;
-constexpr double TURN_IN_PLACE_GAIN = 0.90;
+constexpr double DEADBAND = 0.015;
+constexpr double THROTTLE_EXPO = 1.0;
+constexpr double TURN_EXPO = 1.0;
+constexpr double TURN_AT_FULL = 1.15;
+constexpr double BASE_STEER = 0.05;
+constexpr double TURN_IN_PLACE_GAIN = 1.1;
 constexpr double TURN_IN_PLACE_THROTTLE = 0.05;
 
 constexpr std::uint32_t kLvTickMs = 5;
@@ -129,11 +129,9 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 void initialize() {
-    
-    matchloader.set_value(false);
-    wing.set_value(false);
-    middescore.set_value(false);
-    midgoal.set_value(true);
+    matchloader.retract();
+    wing.retract();
+    midgoal.extend();
     pros::delay(30);
     
     chassis.calibrate();
@@ -149,16 +147,19 @@ void initialize() {
     });
 }
 void disabled() {
-
+    matchloader.retract();
+    wing.retract();
+    midgoal.extend();
 }
 void competition_initialize() {
-    
+    matchloader.retract();
+    wing.retract();
+    midgoal.extend();
 }
 void autonomous() {
-    matchloader.set_value(false);
-    wing.set_value(false);
-    middescore.set_value(false);
-    midgoal.set_value(true);
+    matchloader.retract();
+    wing.retract();
+    midgoal.extend();
     run_selected_auton();
 }
 
@@ -229,18 +230,6 @@ void opcontrol() {
         } else {
             wing.retract();
         }
-
-        bool currDown = master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
-
-        if (currDown && !lastDown) {
-            flagStateDescore = !flagStateDescore;
-            if (flagStateDescore)
-                middescore.extend();
-            else
-                middescore.retract();
-        }
-
-        lastDown = currDown;
 
         pros::delay(10);
     }

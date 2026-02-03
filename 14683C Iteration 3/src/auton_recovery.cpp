@@ -338,6 +338,54 @@ bool snapLeftToWall(double targetMm,
     return false;
 }
 
+bool frontSetDistance(double targetMm,
+                      double faceHeadingDeg,
+                      int timeoutMs,
+                      int tolMm,
+                      double maxFwd) {
+    double filt_mm = 0.0;
+    bool has_filt = false;
+    int stable = 0;
+    const int start = pros::millis();
+
+    while (pros::millis() - start < timeoutMs) {
+        const int mm = frontDist.get();
+        if (!distValidMm(mm)) {
+            set_drive(0.0, 0.0);
+            return false;
+        }
+
+        if (!has_filt) {
+            filt_mm = mm;
+            has_filt = true;
+        } else {
+            filt_mm = filt(filt_mm, mm, Tuning::distAlpha);
+        }
+
+        const double error = targetMm - filt_mm;
+        const double fwd = clamp(Tuning::setDistKp * error, -maxFwd, maxFwd);
+        const double heading_err = wrap_deg(faceHeadingDeg - imu.get_heading());
+        const double turn = clamp(Tuning::headingKp * heading_err,
+                                  -Tuning::maxTurn, Tuning::maxTurn);
+        set_drive(fwd + turn, fwd - turn);
+
+        if (std::fabs(error) <= tolMm) {
+            ++stable;
+        } else {
+            stable = 0;
+        }
+
+        if (stable >= Tuning::setStableSamples) {
+            set_drive(0.0, 0.0);
+            return true;
+        }
+        pros::delay(Tuning::distUpdateMs);
+    }
+
+    set_drive(0.0, 0.0);
+    return false;
+}
+
 bool driveDistanceHeading(double inches,
                           double faceHeadingDeg,
                           int timeoutMs,

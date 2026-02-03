@@ -55,16 +55,20 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 
 void initialize() {
     pros::lcd::initialize();
+    pros::lcd::print(0, "Calibrating IMU...");
     chassis.calibrate();
+    while (imu.is_calibrating()) {
+        pros::delay(20);
+    }
 
     pros::Task screenTask([&]() {
         while (true) {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            pros::lcd::print(3, "Distance: %f", distanceSensorL.get_distance()); // distance sensor
-            pros::lcd::print(4, "Distance: %f", distanceSensorR.get_distance()); // distance sensor
-            pros::lcd::print(5, "Distance: %f", distanceSensorF.get_distance()); // distance sensor
+            pros::lcd::print(3, "Distance: %f", distanceSensorL.get()); // distance sensor
+            pros::lcd::print(4, "Distance: %f", distanceSensorR.get()); // distance sensor
+            pros::lcd::print(5, "Distance: %f", distanceSensorF.get()); // distance sensor
             lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
             pros::delay(50);
         }

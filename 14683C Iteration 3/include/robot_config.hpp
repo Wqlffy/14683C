@@ -28,6 +28,7 @@ extern pros::Imu imu;
 
 extern pros::Distance leftDist;
 extern pros::Distance rightDist;
+extern pros::Distance frontDist;
 
 extern pros::adi::Pneumatics matchloader;
 extern pros::adi::Pneumatics midgoal;
