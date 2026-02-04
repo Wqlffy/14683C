@@ -179,7 +179,6 @@ void opcontrol() {
 
     bool lastA = false;
     bool lastB = false;
-    bool lastDown = false;
     bool wingExtended = false;
 
     while (true) {
@@ -232,13 +231,18 @@ void opcontrol() {
         const bool currB = master.get_digital(pros::E_CONTROLLER_DIGITAL_B);
         if (currB && !lastB) {
             wingExtended = !wingExtended;
-            if (wingExtended) {
-                wing.extend();
-            } else {
-                wing.retract();
-            }
         }
         lastB = currB;
+
+        const bool wingHoldRetract =
+            master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+        if (wingHoldRetract) {
+            wing.retract();
+        } else if (wingExtended) {
+            wing.extend();
+        } else {
+            wing.retract();
+        }
 
         pros::delay(10);
     }

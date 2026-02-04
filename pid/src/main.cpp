@@ -204,6 +204,7 @@ void odomTaskFn() {
     }
 }
 pros::Task* odomTask = nullptr; // FIX: start after IMU calibration
+pros::Task* lemlibOdomTask = nullptr;
 }
 
 
@@ -214,19 +215,31 @@ void initialize() {
     imu.reset();
     while (imu.is_calibrating()) pros::delay(20);
     chassis.calibrate(false); // FIX: IMU already calibrated above
-    if (odomTask == nullptr) {
+    // Prefer LemLib odometry updates. Keep custom odom available for debug only.
+#ifndef USE_CUSTOM_ODOM
+#define USE_CUSTOM_ODOM 0
+#endif
+    if (USE_CUSTOM_ODOM && odomTask == nullptr) {
         odomTask = new pros::Task(odomTaskFn, "Odom Task");
+    }
+    if (lemlibOdomTask == nullptr) {
+        lemlibOdomTask = new pros::Task([] {
+            while (true) {
+                chassis.update();
+                pros::delay(10);
+            }
+        }, "LemLib Odom");
     }
 
     pros::Task screenTask([&]() {
         while (true) {
-            OdomPose pose = getOdomPose();
+            auto pose = chassis.getPose();
             pros::lcd::print(0, "X: %f", pose.x); // x
             pros::lcd::print(1, "Y: %f", pose.y); // y
             pros::lcd::print(2, "Theta: %f", pose.theta); // heading (deg)
-            pros::lcd::print(3, "Distance LEFT: %d mm\n", distanceSensorL.get()); // distance sensor
-            pros::lcd::print(4, "Distance RIGHT: %d mm\n", distanceSensorR.get()); // distance sensor
-            pros::lcd::print(5, "Distance FRONT: %d mm\n", distanceSensorF.get()); // distance sensor
+            pros::lcd::print(3, "Distance LEFT: %d mm\n", distanceSensorL.get_distance());
+            pros::lcd::print(4, "Distance RIGHT: %d mm\n", distanceSensorR.get_distance());
+            pros::lcd::print(5, "Distance FRONT: %d mm\n", distanceSensorF.get_distance());
             lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
             pros::delay(50);
         }
