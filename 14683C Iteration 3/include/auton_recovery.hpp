@@ -122,9 +122,11 @@ bool moveToPointWithWallAssist(double x,
                                double targetMm,
                                double faceHeadingDeg,
                                bool forwards = true,
+                               int deadbandMm = 20,
                                int tolMm = 15,
                                int correctionTimeoutMs = 150,
                                int minIntervalMs = 200,
+                               int maxJumpMm = 120,
                                int pollMs = Tuning::distUpdateMs);
 
 void resetDriveDistance();

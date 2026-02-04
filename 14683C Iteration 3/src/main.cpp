@@ -160,11 +160,7 @@ void autonomous() {
     matchloader.retract();
     wing.retract();
     midgoal.extend();
-    imu.reset();
-    while (imu.is_calibrating()) {
-        pros::delay(10);
-    }
-    run_selected_auton();
+    auton_9_long_blue_left();
 }
 
 

@@ -553,9 +553,11 @@ bool moveToPointWithWallAssist(double x,
                                double targetMm,
                                double faceHeadingDeg,
                                bool forwards,
+                               int deadbandMm,
                                int tolMm,
                                int correctionTimeoutMs,
                                int minIntervalMs,
+                               int maxJumpMm,
                                int pollMs) {
     if (pollMs <= 0) {
         pollMs = Tuning::distUpdateMs;
@@ -566,6 +568,10 @@ bool moveToPointWithWallAssist(double x,
 
     const int start = pros::millis();
     int last_correction = -100000;
+    int bad_samples = 0;
+    const int tol_hi = std::max(tolMm + 5, tolMm * 2);
+    double last_mm = 0.0;
+    bool has_last_mm = false;
 
     lemlib::MoveToPointParams params{};
     params.forwards = forwards;
@@ -579,30 +585,48 @@ bool moveToPointWithWallAssist(double x,
             break;
         }
 
-        if ((now - last_correction) >= minIntervalMs) {
-            const int mm =
-                (side == WallSide::LEFT) ? leftDist.get() : rightDist.get();
-            if (distValidMm(mm)) {
-                const double error = targetMm - mm;
-                if (std::fabs(error) > tolMm) {
-                    chassis.cancelMotion();
-                    if (side == WallSide::LEFT) {
-                        snapLeftToWall(targetMm, faceHeadingDeg,
-                                       correctionTimeoutMs, tolMm,
-                                       Tuning::maxFwd);
-                    } else {
-                        snapRightToWall(targetMm, faceHeadingDeg,
-                                        correctionTimeoutMs, tolMm,
-                                        Tuning::maxFwd);
-                    }
-                    last_correction = pros::millis();
-                    const int remaining =
-                        timeoutMs - (last_correction - start);
-                    if (remaining > 0) {
-                        chassis.moveToPoint(x, y, remaining, params);
-                    } else {
-                        break;
-                    }
+        update_filtered_distances();
+        const auto& d = g_distances;
+        const bool valid = (side == WallSide::LEFT) ? d.leftValid : d.rightValid;
+        if (valid && (now - last_correction) >= minIntervalMs) {
+            const double mm = (side == WallSide::LEFT) ? d.leftMmFilt : d.rightMmFilt;
+            if (has_last_mm && std::fabs(mm - last_mm) > maxJumpMm) {
+                pros::delay(pollMs);
+                continue;
+            }
+            last_mm = mm;
+            has_last_mm = true;
+            const double error = targetMm - mm;
+            if (std::fabs(error) <= deadbandMm) {
+                bad_samples = 0;
+                pros::delay(pollMs);
+                continue;
+            }
+            if (std::fabs(error) > tol_hi) {
+                ++bad_samples;
+            } else {
+                bad_samples = 0;
+            }
+
+            if (bad_samples >= 3) {
+                chassis.cancelMotion();
+                if (side == WallSide::LEFT) {
+                    snapLeftToWall(targetMm, faceHeadingDeg,
+                                   correctionTimeoutMs, tolMm,
+                                   Tuning::maxFwd);
+                } else {
+                    snapRightToWall(targetMm, faceHeadingDeg,
+                                    correctionTimeoutMs, tolMm,
+                                    Tuning::maxFwd);
+                }
+                last_correction = pros::millis();
+                bad_samples = 0;
+                const int remaining =
+                    timeoutMs - (last_correction - start);
+                if (remaining > 0) {
+                    chassis.moveToPoint(x, y, remaining, params);
+                } else {
+                    break;
                 }
             }
         }

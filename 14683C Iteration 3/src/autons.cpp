@@ -147,45 +147,45 @@ void auton_9_long_blue_left() {
     chassis.turnToHeading(74.638384, 558);
     chassis.moveToPoint(-25.2, 23.04, 1161); //tune the distance, would probably need to use something else
     matchloader.extend();
-    pros::delay(50);
     intakeMotor.move(127);
 
     //move to matchloader
+    matchloader.retract();
     chassis.turnToHeading(317.589502, 966);
     chassis.moveToPoint(-48.0, 42.0, 1399);
     pros::delay(50);
     matchloader.extend();
     chassis.turnToHeading(270.0, 685);
-    AutonRecovery::snapRightToWall(440, 270);
-    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 440, 270); //tune targetMm
+    AutonRecovery::snapRightToWall(473, 270, 400, 20, 0.20);
+    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
     // chassis.moveToPoint(-57.36, 48.0, 876);
     pros::delay(1000);
 
     cdrift(-50, 300);
-    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 440, 270); //tune targetMm
+    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
     chassis.waitUntilDone();
     pros::delay(800);
 
     //move to long goal
-    AutonRecovery::moveToPointWithWallAssist(-31.68, 48, 1226, AutonRecovery::WallSide::RIGHT, 440, 270, false); //tune targetMm
+    AutonRecovery::moveToPointWithWallAssist(-31.68, 48, 1226, AutonRecovery::WallSide::RIGHT, 473, 270, false, 30, 20, 120, 300, 150); //tune targetMm
     // chassis.moveToPoint(-31.68, 48.0, 1226, {.forwards = false});
-    AutonRecovery::snapLeftToWall(440, 270); //tune targetMm
+    // AutonRecovery::snapLeftToWall(473, 270, 400, 20, 0.20); //tune targetMm
     matchloader.retract();
     outtakeMotor.move(127);
     intakeMotor.move(127);
     pros::delay(3000);
 
     //wing
-    // outtakeMotor.move(0);
-    // chassis.turnToHeading(268.806511, 461);
-    // chassis.moveToPoint(-43.2, 47.76, 943);
-    // wing.extend();
-    // chassis.swingToHeading(332.931219, DriveSide::LEFT, 675, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
-    // chassis.moveToPose(-21.36, 34.8, 270.0, 1131, {.forwards = false, .lead = 0.6});
-    // wing.retract();
-    // pros::delay(50);
-    // chassis.turnToHeading(270.0, 1125);
-    // chassis.moveToPoint(-5.52, 34.8, 1004, {.forwards = false});
+    outtakeMotor.move(0);
+    chassis.turnToHeading(268.806511, 461);
+    chassis.moveToPoint(-43.2, 47.76, 943);
+    wing.extend();
+    chassis.swingToHeading(332.931219, DriveSide::LEFT, 675, {.direction = AngularDirection::CW_CLOCKWISE, .minSpeed = 40, .earlyExitRange = 7.0});
+    chassis.moveToPose(-21.36, 34.8, 270.0, 1131, {.forwards = false, .lead = 0.6});
+    wing.retract();
+    pros::delay(50);
+    chassis.turnToHeading(270.0, 1125);
+    chassis.moveToPoint(-5.52, 34.8, 1004, {.forwards = false});
 }
 
 void auton_9_long_blue_right() {
