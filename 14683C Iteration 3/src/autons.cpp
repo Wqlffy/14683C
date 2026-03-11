@@ -145,24 +145,24 @@ void auton_9_long_blue_left() {
     chassis.moveToPoint(-47.04, 17.04, 1028);
     pros::delay(50);
     chassis.turnToHeading(74.638384, 558);
-    chassis.moveToPoint(-25.2, 23.04, 1161); //tune the distance, would probably need to use something else
+    chassis.moveToPoint(-25.2, 23.04, 1161, {.maxSpeed = 60}); //tune the distance, would probably need to use something else
     matchloader.extend();
     intakeMotor.move(127);
 
     //move to matchloader
     matchloader.retract();
     chassis.turnToHeading(317.589502, 966);
-    chassis.moveToPoint(-48.0, 42.0, 1399);
+    chassis.moveToPoint(-50.0, 43.0, 1399);
     pros::delay(50);
     matchloader.extend();
     chassis.turnToHeading(270.0, 685);
     AutonRecovery::snapRightToWall(473, 270, 400, 20, 0.20);
-    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
+    AutonRecovery::moveToPointWithWallAssist(-59.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
     // chassis.moveToPoint(-57.36, 48.0, 876);
     pros::delay(1000);
 
     cdrift(-50, 300);
-    AutonRecovery::moveToPointWithWallAssist(-57.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
+    AutonRecovery::moveToPointWithWallAssist(-59.36, 48, 876, AutonRecovery::WallSide::RIGHT, 473, 270, true, 30, 20, 120, 300, 150); //tune targetMm
     chassis.waitUntilDone();
     pros::delay(800);
 
@@ -171,7 +171,8 @@ void auton_9_long_blue_left() {
     // chassis.moveToPoint(-31.68, 48.0, 1226, {.forwards = false});
     // AutonRecovery::snapLeftToWall(473, 270, 400, 20, 0.20); //tune targetMm
     matchloader.retract();
-    outtakeMotor.move(127);
+    midgoal.extend();
+    outtakeMotor.move(-127);
     intakeMotor.move(127);
     pros::delay(3000);
 
